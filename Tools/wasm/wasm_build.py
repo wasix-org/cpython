@@ -55,6 +55,9 @@ HAS_CCACHE = shutil.which("ccache") is not None
 # path to WASI-SDK root
 WASI_SDK_PATH = pathlib.Path(os.environ.get("WASI_SDK_PATH", "/opt/wasi-sdk"))
 
+# options: wasmtime, wasmer
+WASM_RUNTIME = os.environ.get("WASM_RUNTIME", "wasmtime")
+
 # path to Emscripten SDK config file.
 # auto-detect's EMSDK in /opt/emsdk without ". emsdk_env.sh".
 EM_CONFIG = pathlib.Path(os.environ.setdefault("EM_CONFIG", "/opt/emsdk/.emscripten"))
@@ -105,6 +108,20 @@ INSTALL_WASMTIME = """
 wasm32-wasi tests require wasmtime on PATH. Please follow instructions at
 https://wasmtime.dev/ to install wasmtime.
 """
+
+INSTALL_WASMER = """
+wasm32-wasi tests require wasmer on PATH when wasmer is selected as the
+WASI_RUNTIME. Please follow instructions at
+https://docs.wasmer.io/ecosystem/wasmer/getting-started to install
+wasmtime.
+"""
+
+INSTALL_WASM_RUNTIME = {
+    "wasmtime": INSTALL_WASMTIME,
+    "wasmer": INSTALL_WASMER,
+}
+
+WASM_RUNTIMES = INSTALL_WASM_RUNTIME.keys()
 
 
 def parse_emconfig(
@@ -165,6 +182,7 @@ class MissingDependency(ConditionError):
 class DirtySourceDirectory(ConditionError):
     pass
 
+UnsupportedRuntimeError = ConditionError("wasm runtime", f"{WASM_RUNTIME} is not a supported WASM runtime, please try one of {WASM_RUNTIMES}")
 
 @dataclasses.dataclass
 class Platform:
@@ -297,11 +315,30 @@ def _check_wasi():
     wasm_ld = WASI_SDK_PATH / "bin" / "wasm-ld"
     if not wasm_ld.exists():
         raise MissingDependency(os.fspath(wasm_ld), INSTALL_WASI_SDK)
-    wasmtime = shutil.which("wasmtime")
-    if wasmtime is None:
-        raise MissingDependency("wasmtime", INSTALL_WASMTIME)
+    if WASM_RUNTIME not in WASM_RUNTIMES:
+        raise UnsupportedRuntimeError
+
+    runtime = shutil.which(WASM_RUNTIME)
+    if runtime is None:
+        raise MissingDependency(WASM_RUNTIME,
+                                INSTALL_WASM_RUNTIME[WASM_RUNTIME])
     _check_clean_src()
 
+def _wasi_hostrunner():
+    if WASM_RUNTIME == "wasmtime":
+        return (
+            "wasmtime run "
+            "--env PYTHONPATH=/{relbuilddir}/build/lib.wasi-wasm32-{version}:/Lib "
+            "--mapdir /::{srcdir} --"
+        )
+    elif WASM_RUNTIME == "wasmer":
+        return (
+            "wasmer run "
+            "--env PYTHONPATH=/{relbuilddir}/build/lib.wasi-wasm32-{version}:/Lib "
+            "--mapdir /::{srcdir} --"
+        )
+    else:
+        raise UnsupportedRuntimeError
 
 WASI = Platform(
     "wasi",
@@ -314,11 +351,7 @@ WASI = Platform(
     environ={
         "WASI_SDK_PATH": WASI_SDK_PATH,
         # workaround for https://github.com/python/cpython/issues/95952
-        "HOSTRUNNER": (
-            "wasmtime run "
-            "--env PYTHONPATH=/{relbuilddir}/build/lib.wasi-wasm32-{version}:/Lib "
-            "--mapdir /::{srcdir} --"
-        ),
+        "HOSTRUNNER": _wasi_hostrunner(),
         "PATH": [WASI_SDK_PATH / "bin", os.environ["PATH"]],
     },
     check=_check_wasi,
