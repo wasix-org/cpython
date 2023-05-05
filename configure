@@ -8697,7 +8697,7 @@ fi
   WASI) :
 
 
-$as_echo "#define _WASI_EMULATED_SIGNAL 1" >>confdefs.h
+$as_echo "#define _WASI_EMULATED_SIGNAL 0" >>confdefs.h
 
 
 $as_echo "#define _WASI_EMULATED_GETPID 1" >>confdefs.h
@@ -8705,8 +8705,8 @@ $as_echo "#define _WASI_EMULATED_GETPID 1" >>confdefs.h
 
 $as_echo "#define _WASI_EMULATED_PROCESS_CLOCKS 1" >>confdefs.h
 
-    LIBS="$LIBS -lwasi-emulated-signal -lwasi-emulated-getpid -lwasi-emulated-process-clocks"
-    echo "#define _WASI_EMULATED_SIGNAL 1" >> confdefs.h
+    LIBS="$LIBS -lwasi-emulated-getpid -lwasi-emulated-process-clocks"
+    echo "#define _WASI_EMULATED_SIGNAL 0" >> confdefs.h
 
             as_fn_append LDFLAGS_NODIST " -z stack-size=524288 -Wl,--stack-first -Wl,--initial-memory=10485760"
 

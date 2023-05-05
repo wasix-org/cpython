@@ -1944,7 +1944,7 @@ if test "$Py_BOLT" = 'true' ; then
   then
     AC_MSG_ERROR([readelf is required for a --enable-bolt build but could not be found.])
   fi
-      
+
   # -fno-reorder-blocks-and-partition is required for bolt to work.
   # Possibly GCC only.
   AX_CHECK_COMPILE_FLAG([-fno-reorder-blocks-and-partition],[
@@ -2231,11 +2231,10 @@ AS_CASE([$ac_sys_system],
     ])
   ],
   [WASI], [
-    AC_DEFINE([_WASI_EMULATED_SIGNAL], [1], [Define to 1 if you want to emulate signals on WASI])
+    AC_DEFINE([_WASI_EMULATED_SIGNAL], [0], [Define to 1 if you want to emulate signals on WASI])
     AC_DEFINE([_WASI_EMULATED_GETPID], [1], [Define to 1 if you want to emulate getpid() on WASI])
     AC_DEFINE([_WASI_EMULATED_PROCESS_CLOCKS], [1], [Define to 1 if you want to emulate process clocks on WASI])
-    LIBS="$LIBS -lwasi-emulated-signal -lwasi-emulated-getpid -lwasi-emulated-process-clocks"
-    echo "#define _WASI_EMULATED_SIGNAL 1" >> confdefs.h
+    LIBS="$LIBS -lwasi-emulated-getpid -lwasi-emulated-process-clocks"
 
     dnl increase initial memory and stack size, move stack first
     dnl https://github.com/WebAssembly/wasi-libc/issues/233
