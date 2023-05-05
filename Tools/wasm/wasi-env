@@ -30,7 +30,7 @@ if test -z "$1"; then
 fi
 
 WASI_SDK_PATH="${WASI_SDK_PATH:-/opt/wasi-sdk}"
-WASI_SYSROOT="${WASI_SDK_PATH}/share/wasi-sysroot"
+WASI_SYSROOT="${WASI_SYSROOT:-${WASI_SDK_PATH}/share/wasi-sysroot}"
 
 if ! test -x "${WASI_SDK_PATH}/bin/clang"; then
     echo "Error: ${WASI_SDK_PATH}/bin/clang does not exist." >&2
