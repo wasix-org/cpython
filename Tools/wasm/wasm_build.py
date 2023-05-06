@@ -47,6 +47,7 @@ logger = logging.getLogger("wasm_build")
 SRCDIR = pathlib.Path(__file__).parent.parent.parent.absolute()
 WASMTOOLS = SRCDIR / "Tools" / "wasm"
 BUILDDIR = SRCDIR / "builddir"
+BUILDDIR = pathlib.Path(os.environ.get("BUILDDIR", BUILDDIR))
 CONFIGURE = SRCDIR / "configure"
 SETUP_LOCAL = SRCDIR / "Modules" / "Setup.local"
 
