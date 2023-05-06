@@ -740,7 +740,7 @@ clinic: check-clean-src $(srcdir)/Modules/_blake2/blake2s_impl.c
 $(BUILDPYTHON):	Programs/python.o $(LINK_PYTHON_DEPS)
 	$(LINKCC) $(PY_CORE_LDFLAGS) $(LINKFORSHARED) -o $@ Programs/python.o $(LINK_PYTHON_OBJS) $(LIBS) $(MODLIBS) $(SYSLIBS)
 
-platform: $(PYTHON_FOR_BUILD_DEPS) pybuilddir.txt
+platform: $(PYTHON_FOR_BUILD_DEPS) $(abs_builddir)/pybuilddir.txt
 	$(RUNSHARED) $(PYTHON_FOR_BUILD) -c 'import sys ; from sysconfig import get_platform ; print("%s-%d.%d" % (get_platform(), *sys.version_info[:2]))' >platform
 
 # Create build directory and generate the sysconfig build-time data there.
@@ -750,12 +750,12 @@ platform: $(PYTHON_FOR_BUILD_DEPS) pybuilddir.txt
 # problems by creating a dummy pybuilddir.txt just to allow interpreter
 # initialization to succeed.  It will be overwritten by generate-posix-vars
 # or removed in case of failure.
-pybuilddir.txt: $(PYTHON_FOR_BUILD_DEPS)
-	@echo "none" > ./pybuilddir.txt
+$(abs_builddir)/pybuilddir.txt: $(PYTHON_FOR_BUILD_DEPS)
+	@echo "none" > $(abs_builddir)/pybuilddir.txt
 	$(RUNSHARED) $(PYTHON_FOR_BUILD) -S -m sysconfig --generate-posix-vars ;\
 	if test $$? -ne 0 ; then \
 		echo "generate-posix-vars failed" ; \
-		rm -f ./pybuilddir.txt ; \
+		rm -f $(abs_builddir)/pybuilddir.txt ; \
 		exit 1 ; \
 	fi
 
@@ -841,7 +841,7 @@ $(DLLLIBRARY) libpython$(LDVERSION).dll.a: $(LIBRARY_OBJS)
 wasm_stdlib: $(WASM_STDLIB)
 $(WASM_STDLIB): $(srcdir)/Lib/*.py $(srcdir)/Lib/*/*.py \
 	    $(srcdir)/Tools/wasm/wasm_assets.py \
-	    Makefile pybuilddir.txt Modules/Setup.local
+	    Makefile $(abs_builddir)/pybuilddir.txt Modules/Setup.local
 	$(PYTHON_FOR_BUILD) $(srcdir)/Tools/wasm/wasm_assets.py \
 	    --buildroot . --prefix $(prefix)
 
@@ -936,8 +936,8 @@ $(LIBHACL_SHA2_A): $(LIBHACL_SHA2_OBJS)
 # create relative links from build/lib.platform/egg.so to Modules/egg.so
 # pybuilddir.txt is created too late. We cannot use it in Makefile
 # targets. ln --relative is not portable.
-sharedmods: $(SHAREDMODS) pybuilddir.txt
-	@target=`cat pybuilddir.txt`; \
+sharedmods: $(SHAREDMODS) $(abs_builddir)/pybuilddir.txt
+	@target=`cat $(abs_builddir)/pybuilddir.txt`; \
 	$(MKDIR_P) $$target; \
 	for mod in X $(SHAREDMODS); do \
 		if test $$mod != X; then \
@@ -2224,7 +2224,7 @@ libinstall:	all $(srcdir)/Modules/xxmodule.c
 			esac; \
 		done; \
 	done
-	$(INSTALL_DATA) `cat pybuilddir.txt`/_sysconfigdata_$(ABIFLAGS)_$(MACHDEP)_$(MULTIARCH).py \
+	$(INSTALL_DATA) `cat $(abs_builddir)/pybuilddir.txt`/_sysconfigdata_$(ABIFLAGS)_$(MACHDEP)_$(MULTIARCH).py \
 		$(DESTDIR)$(LIBDEST); \
 	$(INSTALL_DATA) $(srcdir)/LICENSE $(DESTDIR)$(LIBDEST)/LICENSE.txt
 	@ # Build PYC files for the 3 optimization levels (0, 1, 2)
@@ -2547,7 +2547,7 @@ clean-retain-profile: pycremoval
 	find build -name 'fficonfig.h' -exec rm -f {} ';' || true
 	find build -name '*.py' -exec rm -f {} ';' || true
 	find build -name '*.py[co]' -exec rm -f {} ';' || true
-	-rm -f pybuilddir.txt
+	-rm -f $(abs_builddir)/pybuilddir.txt
 	-rm -f Lib/lib2to3/*Grammar*.pickle
 	-rm -f _bootstrap_python
 	-rm -f python.html python*.js python.data python*.symbols python*.map
