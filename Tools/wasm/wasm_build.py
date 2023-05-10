@@ -465,6 +465,7 @@ class BuildProfile:
     name: str
     support_level: SupportLevel
     host: Host
+    debug: Union[bool, None] = None
     target: Union[EmscriptenTarget, None] = None
     dynamic_linking: Union[bool, None] = None
     pthreads: Union[bool, None] = None
@@ -517,6 +518,9 @@ class BuildProfile:
             assert self.host.is_emscripten
             opt = "enable" if self.pthreads else "disable"
             cmd.append(f"--{opt}-wasm-pthreads")
+
+        if self.debug:
+            cmd.append(f"--with-pydebug")
 
         if self.host != Host.build:
             cmd.append(f"--with-build-python={BUILD.python_cmd}")
@@ -816,6 +820,12 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--debug",
+    help="Configure with PyDebug=1",
+    action="store_true",
+)
+
+parser.add_argument(
     "--testopts",
     help=(
         "Additional test options for 'test' and 'hostrunnertest', e.g. "
@@ -904,6 +914,8 @@ def main():
         # build Emscripten ports with embuilder
         if builder.host.is_emscripten and "emports" not in args.ops:
             builder.build_emports()
+
+    builder.debug = args.debug
 
     for op in args.ops:
         logger.info("\n*** %s %s", args.platform, op)
