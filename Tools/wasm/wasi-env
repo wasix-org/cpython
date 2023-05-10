@@ -72,5 +72,19 @@ export CFLAGS LDFLAGS
 export PKG_CONFIG_PATH PKG_CONFIG_LIBDIR PKG_CONFIG_SYSROOT_DIR
 export PATH
 
+CFLAGS+="-pthread"
+LDFLAGS="-Wl,--shared-memory"
+LDFLAGS+=" -Wl,--max-memory=4294967296"
+LDFLAGS+=" -Wl,--import-memory"
+LDFLAGS+=" -Wl,--export-dynamic"
+LDFLAGS+=" -Wl,--export=__heap_base"
+LDFLAGS+=" -Wl,--export=__stack_pointer"
+LDFLAGS+=" -Wl,--export=__data_end"
+LDFLAGS+=" -Wl,--export=__wasm_init_tls"
+LDFLAGS+=" -Wl,--export=__wasm_signal"
+LDFLAGS+=" -Wl,--export=__tls_size"
+LDFLAGS+=" -Wl,--export=__tls_align"
+LDFLAGS+=" -Wl,--export=__tls_base"
+
 # no exec, it makes arvg[0] path absolute.
 "$@"
