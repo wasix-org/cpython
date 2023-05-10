@@ -591,6 +591,13 @@ class BuildProfile:
             self.run_configure(*args)
         self.run_make("all", *args)
 
+    def run_stdlib(self, *args):
+        """Run configure (if necessary) and make"""
+        if not self.makefile.exists():
+            logger.info("Makefile not found, running configure")
+            self.run_configure(*args)
+        self.run_make("wasm_stdlib", *args)
+
     def run_configure(self, *args):
         """Run configure script to generate Makefile"""
         os.makedirs(self.builddir, exist_ok=True)
@@ -847,6 +854,7 @@ parser.add_argument(
 ops = dict(
     build="auto build (build 'build' Python, emports, configure, compile)",
     configure="run ./configure",
+    stdlib="run make wasm_stdlib",
     compile="run 'make all'",
     pythoninfo="run 'make pythoninfo'",
     test="run 'make buildbottest TESTOPTS=...' (supports parallel tests)",
@@ -921,6 +929,8 @@ def main():
         logger.info("\n*** %s %s", args.platform, op)
         if op == "build":
             builder.run_build(*cm_args)
+        elif op == "stdlib":
+            builder.run_stdlib(*cm_args)
         elif op == "configure":
             builder.run_configure(*cm_args)
         elif op == "compile":
