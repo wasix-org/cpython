@@ -4,16 +4,17 @@
   $ ./Tools/wasm/wasm_builder.py emscripten-browser build repl
   $ ./Tools/wasm/wasm_builder.py emscripten-node-dl build test
   $ ./Tools/wasm/wasm_builder.py wasi build test
+  $ ./Tools/wasm/wasm_builder.py wasix build test
 
 Primary build targets are "emscripten-node-dl" (NodeJS, dynamic linking),
-"emscripten-browser", and "wasi".
+"emscripten-browser", "wasi", and "wasix".
 
 Emscripten builds require a recent Emscripten SDK. The tools looks for an
 activated EMSDK environment (". /path/to/emsdk_env.sh"). System packages
 (Debian, Homebrew) are not supported.
 
-WASI builds require WASI SDK and wasmtime. The tool looks for 'WASI_SDK_PATH'
-and falls back to /opt/wasi-sdk.
+WASI and WASIX builds require WASI SDK and wasmtime. The tool looks for
+'WASI_SDK_PATH' and falls back to /opt/wasi-sdk.
 
 The 'build' Python interpreter must be rebuilt every time Python's byte code
 changes.
@@ -341,6 +342,23 @@ def _wasi_hostrunner():
     else:
         raise UnsupportedRuntimeError
 
+WASIX = Platform(
+    "wasi",
+    pythonexe="python.wasm",
+    config_site=WASMTOOLS / "config.site-wasm32-wasix",
+    configure_wrapper=WASMTOOLS / "wasi-env",
+    ports=None,
+    cc=WASI_SDK_PATH / "bin" / "clang",
+    make_wrapper=None,
+    environ={
+        "WASI_SDK_PATH": WASI_SDK_PATH,
+        # workaround for https://github.com/python/cpython/issues/95952
+        "HOSTRUNNER": _wasi_hostrunner(),
+        "PATH": [WASI_SDK_PATH / "bin", os.environ["PATH"]],
+    },
+    check=_check_wasi,
+)
+
 WASI = Platform(
     "wasi",
     pythonexe="python.wasm",
@@ -366,6 +384,8 @@ class Host(enum.Enum):
     wasm64_emscripten = "wasm64-unknown-emscripten"
     wasm32_wasi = "wasm32-unknown-wasi"
     wasm64_wasi = "wasm64-unknown-wasi"
+    wasm32_wasix = "wasm32-unknown-wasix"
+    wasm64_wasix = "wasm64-unknown-wasix"
     # current platform
     build = sysconfig.get_config_var("BUILD_GNU_TYPE")
 
@@ -373,6 +393,8 @@ class Host(enum.Enum):
     def platform(self) -> Platform:
         if self.is_emscripten:
             return EMSCRIPTEN
+        elif self.is_wasix:
+            return WASIX
         elif self.is_wasi:
             return WASI
         else:
@@ -382,6 +404,11 @@ class Host(enum.Enum):
     def is_emscripten(self) -> bool:
         cls = type(self)
         return self in {cls.wasm32_emscripten, cls.wasm64_emscripten}
+
+    @property
+    def is_wasix(self) -> bool:
+        cls = type(self)
+        return self in {cls.wasm64_wasix, cls.wasm32_wasix}
 
     @property
     def is_wasi(self) -> bool:
@@ -789,6 +816,12 @@ _profiles = [
         "wasi",
         support_level=SupportLevel.supported,
         host=Host.wasm32_wasi,
+    ),
+    # wasm32-wasix
+    BuildProfile(
+        "wasix",
+        support_level=SupportLevel.supported,
+        host=Host.wasm32_wasix,
     ),
     # no SDK available yet
     # BuildProfile(
