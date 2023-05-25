@@ -3881,6 +3881,9 @@ then
 	*-*-wasi)
 	    ac_sys_system=WASI
 	    ;;
+	*-*-wasix)
+	    ac_sys_system=WASIX
+	    ;;
 	*)
 		# for now, limit cross builds to known configurations
 		MACHDEP="unknown"
@@ -6235,6 +6238,8 @@ cat > conftest.c <<EOF
 #elif defined(__wasm32__)
 #  if defined(__EMSCRIPTEN__)
 	wasm32-emscripten
+#  elif defined(__wasix__)
+	wasm32-wasix
 #  elif defined(__wasi__)
 	wasm32-wasi
 #  else
@@ -6243,6 +6248,8 @@ cat > conftest.c <<EOF
 #elif defined(__wasm64__)
 #  if defined(__EMSCRIPTEN__)
 	wasm64-emscripten
+#  elif defined(__wasix__)
+	wasm64-wasix
 #  elif defined(__wasi__)
 	wasm64-wasi
 #  else
@@ -6332,6 +6339,8 @@ case $host/$ac_cv_cc_name in #(
     wasm32-unknown-emscripten/clang) :
     PY_SUPPORT_TIER=3 ;; #(
     wasm32-unknown-wasi/clang) :
+    PY_SUPPORT_TIER=3 ;; #(
+    wasm32-unknown-wasix/clang) :
     PY_SUPPORT_TIER=3 ;; #(
     x86_64-*-freebsd*/clang) :
     PY_SUPPORT_TIER=3 ;; #(
@@ -6494,10 +6503,10 @@ if test "${enable_wasm_dynamic_linking+set}" = set; then :
   case $ac_sys_system in #(
   Emscripten) :
      ;; #(
-  WASI) :
+  WASI|WASIX) :
     as_fn_error $? "WASI dynamic linking is not implemented yet." "$LINENO" 5 ;; #(
   *) :
-    as_fn_error $? "--enable-wasm-dynamic-linking only applies to Emscripten and WASI" "$LINENO" 5
+    as_fn_error $? "--enable-wasm-dynamic-linking only applies to Emscripten, WASI, and WASIX" "$LINENO" 5
    ;;
 esac
 
@@ -6516,12 +6525,12 @@ $as_echo_n "checking for --enable-wasm-pthreads... " >&6; }
 if test "${enable_wasm_pthreads+set}" = set; then :
   enableval=$enable_wasm_pthreads;
   case $ac_sys_system in #(
-  Emscripten) :
+  Emscripten|WASIX) :
      ;; #(
   WASI) :
     as_fn_error $? "WASI threading is not implemented yet." "$LINENO" 5 ;; #(
   *) :
-    as_fn_error $? "--enable-wasm-pthreads only applies to Emscripten and WASI" "$LINENO" 5
+    as_fn_error $? "--enable-wasm-pthreads only applies to Emscripten, WASI, and WASIX" "$LINENO" 5
    ;;
 esac
 
@@ -6558,6 +6567,8 @@ else
   Emscripten/node*) :
     EXEEXT=.js ;; #(
   WASI/*) :
+    EXEEXT=.wasm ;; #(
+  WASIX/*) :
     EXEEXT=.wasm ;; #(
   *) :
     EXEEXT=
@@ -7508,7 +7519,7 @@ fi
 
       ;;
   esac
-elif test "$ac_sys_system" = "Emscripten" -o "$ac_sys_system" = "WASI"; then
+elif test "$ac_sys_system" = "Emscripten" -o "$ac_sys_system" = "WASI" -o "$ac_sys_system" = "WASIX"; then
       DEF_MAKE_ALL_RULE="build_wasm"
   REQUIRE_PGO="no"
   DEF_MAKE_RULE="all"
@@ -8694,10 +8705,25 @@ else
 
 fi
    ;; #(
-  WASI) :
+  WASIX) :
 
 
 $as_echo "#define _WASI_EMULATED_SIGNAL 0" >>confdefs.h
+
+
+$as_echo "#define _WASI_EMULATED_GETPID 0" >>confdefs.h
+
+
+$as_echo "#define _WASI_EMULATED_PROCESS_CLOCKS 1" >>confdefs.h
+
+    LIBS="$LIBS -lwasi-emulated-process-clocks"
+
+            as_fn_append LDFLAGS_NODIST " -z stack-size=524288 -Wl,--stack-first -Wl,--initial-memory=10485760"
+   ;; #(
+  WASI) :
+
+
+$as_echo "#define _WASI_EMULATED_SIGNAL 1" >>confdefs.h
 
 
 $as_echo "#define _WASI_EMULATED_GETPID 1" >>confdefs.h
@@ -8706,7 +8732,6 @@ $as_echo "#define _WASI_EMULATED_GETPID 1" >>confdefs.h
 $as_echo "#define _WASI_EMULATED_PROCESS_CLOCKS 1" >>confdefs.h
 
     LIBS="$LIBS -lwasi-emulated-getpid -lwasi-emulated-process-clocks"
-    echo "#define _WASI_EMULATED_SIGNAL 0" >> confdefs.h
 
             as_fn_append LDFLAGS_NODIST " -z stack-size=524288 -Wl,--stack-first -Wl,--initial-memory=10485760"
 
@@ -11456,7 +11481,7 @@ then
 			BLDSHARED="$LDSHARED"
 		fi
 		;;
-	Emscripten|WASI)
+	Emscripten|WASI|WASIX)
 		LDSHARED='$(CC) -shared'
 		LDCXXSHARED='$(CXX) -shared';;
 	Linux*|GNU*|QNX*|VxWorks*|Haiku*)
@@ -11545,7 +11570,7 @@ then
 		 fi;;
 	Linux-android*) ;;
 	Linux*|GNU*) CCSHARED="-fPIC";;
-	Emscripten*|WASI*)
+	Emscripten*|WASI*|WASIX*)
 		if test "x$enable_wasm_dynamic_linking" = xyes; then :
 
 			CCSHARED="-fPIC"
@@ -15884,7 +15909,7 @@ then
     case $ac_sys_system in #(
   Emscripten) :
     with_pymalloc="no" ;; #(
-  WASI) :
+  WASI|WASIX) :
     with_pymalloc="no" ;; #(
   *) :
     with_pymalloc="yes"
@@ -21115,6 +21140,13 @@ fi
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_posix_semaphores_enabled" >&5
 $as_echo "$ac_cv_posix_semaphores_enabled" >&6; }
+case $ac_sys_system in #(
+  WASIX) :
+    ac_cv_posix_semaphores_enabled=no
+ ;; #(
+  *) :
+     ;;
+esac
 if test "x$ac_cv_posix_semaphores_enabled" = xno; then :
 
 
@@ -24833,6 +24865,8 @@ else
     with_ensurepip=no ;; #(
   WASI) :
     with_ensurepip=no ;; #(
+  WASIX) :
+    with_ensurepip=no ;; #(
   *) :
     with_ensurepip=upgrade
        ;;
@@ -25751,6 +25785,34 @@ case $ac_sys_system in #(
     py_cv_module__scproxy=n/a
     py_cv_module_spwd=n/a
  ;; #(
+  WASIX) :
+
+
+
+    py_cv_module__curses=n/a
+    py_cv_module__curses_panel=n/a
+    py_cv_module__dbm=n/a
+    py_cv_module__gdbm=n/a
+    py_cv_module__posixshmem=n/a
+    py_cv_module__scproxy=n/a
+    py_cv_module__tkinter=n/a
+    py_cv_module__xxsubinterpreters=n/a
+    py_cv_module__xxinterpchannels=n/a
+    py_cv_module_grp=n/a
+    py_cv_module_nis=n/a
+    py_cv_module_ossaudiodev=n/a
+    py_cv_module_pwd=n/a
+    py_cv_module_readline=n/a
+    py_cv_module_resource=n/a
+    py_cv_module_spwd=n/a
+    py_cv_module_syslog=n/a
+    py_cv_module__ctypes_test=n/a
+    py_cv_module_fcntl=n/a
+    py_cv_module_mmap=n/a
+    py_cv_module_termios=n/a
+    py_cv_module_=n/a
+
+   ;; #(
   Emscripten|WASI) :
 
 
