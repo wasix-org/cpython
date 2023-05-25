@@ -66,11 +66,16 @@ PKG_CONFIG_SYSROOT_DIR="${WASI_SYSROOT}"
 
 PATH="${WASI_SDK_PATH}/bin:${PATH}"
 
+# enable zlib if available in sysroot
+ZLIB_CFLAGS="-I${WASI_SYSROOT}/include"
+ZLIB_LIBS="-L${WASI_SYSROOT_LIBDIR} -lz"
+
 export WASI_SDK_PATH WASI_SYSROOT
 export CC CPP CXX LDSHARED AR RANLIB
-export CFLAGS LDFLAGS
 export PKG_CONFIG_PATH PKG_CONFIG_LIBDIR PKG_CONFIG_SYSROOT_DIR
 export PATH
+export ZLIB_CFLAGS
+export ZLIB_LIBS
 
 CFLAGS+="-pthread"
 LDFLAGS="-Wl,--shared-memory"
@@ -85,6 +90,8 @@ LDFLAGS+=" -Wl,--export=__wasm_signal"
 LDFLAGS+=" -Wl,--export=__tls_size"
 LDFLAGS+=" -Wl,--export=__tls_align"
 LDFLAGS+=" -Wl,--export=__tls_base"
+
+export CFLAGS LDFLAGS
 
 # no exec, it makes arvg[0] path absolute.
 "$@"
