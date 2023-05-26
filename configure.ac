@@ -2241,9 +2241,10 @@ AS_CASE([$ac_sys_system],
   ],
   [WASIX], [
     AC_DEFINE([_WASI_EMULATED_SIGNAL], [0], [Define to 1 if you want to emulate signals on WASI])
-    AC_DEFINE([_WASI_EMULATED_GETPID], [0], [Define to 1 if you want to emulate getpid() on WASI])
+    AC_DEFINE([_WASI_EMULATED_GETPID], [1], [Define to 1 if you want to emulate getpid() on WASI])
     AC_DEFINE([_WASI_EMULATED_PROCESS_CLOCKS], [1], [Define to 1 if you want to emulate process clocks on WASI])
-    LIBS="$LIBS -lwasi-emulated-process-clocks"
+    AC_DEFINE([_WASI_EMULATED_MMAN], [1], [Define to 1 if you want to emulate process clocks on WASI])
+    LIBS="$LIBS -lwasi-emulated-getpid -lwasi-emulated-mman -lwasi-emulated-process-clocks"
 
     dnl increase initial memory and stack size, move stack first
     dnl https://github.com/WebAssembly/wasi-libc/issues/233

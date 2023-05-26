@@ -1826,6 +1826,9 @@
 /* Define to 1 if you want to emulate signals on WASI */
 #undef _WASI_EMULATED_SIGNAL
 
+/* Define to 1 if you want to emulate process clocks on WASI */
+#undef _WASI_EMULATED_MMAN
+
 /* Define to the level of X/Open that your system supports */
 #undef _XOPEN_SOURCE
 
