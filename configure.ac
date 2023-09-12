@@ -2240,7 +2240,7 @@ AS_CASE([$ac_sys_system],
     ])
   ],
   [WASIX], [
-    AC_DEFINE([_WASI_EMULATED_SIGNAL], [0], [Define to 1 if you want to emulate signals on WASI])
+    AC_DEFINE([_WASI_EMULATED_SIGNAL], [1], [Define to 1 if you want to emulate signals on WASI])
     AC_DEFINE([_WASI_EMULATED_GETPID], [1], [Define to 1 if you want to emulate getpid() on WASI])
     AC_DEFINE([_WASI_EMULATED_PROCESS_CLOCKS], [1], [Define to 1 if you want to emulate process clocks on WASI])
     AC_DEFINE([_WASI_EMULATED_MMAN], [1], [Define to 1 if you want to emulate process clocks on WASI])
@@ -7065,8 +7065,6 @@ AS_CASE([$ac_sys_system],
   [WASIX], [
     dnl resource functions (get/setrusage) are stubs, too.
     PY_STDLIB_MOD_SET_NA(
-      [_curses],
-      [_curses_panel],
       [_dbm],
       [_gdbm],
       [_posixshmem],
@@ -7078,14 +7076,12 @@ AS_CASE([$ac_sys_system],
       [nis],
       [ossaudiodev],
       [pwd],
-      [readline],
       [resource],
       [spwd],
       [syslog],
       [_ctypes_test],
       [fcntl],
       [mmap],
-      [termios],
     )
   ],
   [Emscripten|WASI], [

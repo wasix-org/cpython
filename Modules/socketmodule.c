@@ -2653,7 +2653,7 @@ getsockaddrlen(PySocketSockObject *s, socklen_t *len_ret)
     }
 #endif /* USE_BLUETOOTH */
 
-#ifdef HAVE_NETPACKET_PACKET_H
+#if defined(HAVE_NETPACKET_PACKET_H) && !defined(__wasm32)
     case AF_PACKET:
     {
         *len_ret = sizeof (struct sockaddr_ll);

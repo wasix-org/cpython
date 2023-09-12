@@ -961,7 +961,7 @@ faulthandler_suppress_crash_report(void)
     SetErrorMode(mode | SEM_NOGPFAULTERRORBOX);
 #endif
 
-#ifdef HAVE_SYS_RESOURCE_H
+#if defined(HAVE_SYS_RESOURCE_H) && !defined(__wasm32)
     struct rlimit rl;
 
     /* Disable creation of core dump */

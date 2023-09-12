@@ -10034,7 +10034,7 @@ exit:
     return return_value;
 }
 
-#if defined(HAVE_MEMFD_CREATE)
+#if defined(HAVE_MEMFD_CREATE) && !defined(__wasm32)
 
 PyDoc_STRVAR(os_memfd_create__doc__,
 "memfd_create($module, /, name, flags=MFD_CLOEXEC)\n"
