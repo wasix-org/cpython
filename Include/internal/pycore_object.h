@@ -58,6 +58,9 @@ extern void _Py_DecRefTotal(PyInterpreterState *);
 // Increment reference count by n
 static inline void _Py_RefcntAdd(PyObject* op, Py_ssize_t n)
 {
+    if (_Py_IsImmortal(op)) {
+        return;
+    }
 #ifdef Py_REF_DEBUG
     _Py_AddRefTotal(_PyInterpreterState_GET(), n);
 #endif
@@ -72,6 +75,21 @@ static inline void _Py_SetImmortal(PyObject *op)
     }
 }
 #define _Py_SetImmortal(op) _Py_SetImmortal(_PyObject_CAST(op))
+
+/* _Py_ClearImmortal() should only be used during runtime finalization. */
+static inline void _Py_ClearImmortal(PyObject *op)
+{
+    if (op) {
+        assert(op->ob_refcnt == _Py_IMMORTAL_REFCNT);
+        op->ob_refcnt = 1;
+        Py_DECREF(op);
+    }
+}
+#define _Py_ClearImmortal(op) \
+    do { \
+        _Py_ClearImmortal(_PyObject_CAST(op)); \
+        op = NULL; \
+    } while (0)
 
 static inline void
 _Py_DECREF_SPECIALIZED(PyObject *op, const destructor destruct)
@@ -134,6 +152,7 @@ _PyType_HasFeature(PyTypeObject *type, unsigned long feature) {
 
 extern void _PyType_InitCache(PyInterpreterState *interp);
 
+extern void _PyObject_InitState(PyInterpreterState *interp);
 
 /* Inline functions trading binary compatibility for speed:
    _PyObject_Init() is the fast version of PyObject_Init(), and
@@ -253,8 +272,8 @@ extern void _PyDebug_PrintTotalRefs(void);
 
 #ifdef Py_TRACE_REFS
 extern void _Py_AddToAllObjects(PyObject *op, int force);
-extern void _Py_PrintReferences(FILE *);
-extern void _Py_PrintReferenceAddresses(FILE *);
+extern void _Py_PrintReferences(PyInterpreterState *, FILE *);
+extern void _Py_PrintReferenceAddresses(PyInterpreterState *, FILE *);
 #endif
 
 

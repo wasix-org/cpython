@@ -694,14 +694,19 @@ zoneinfo_fromutc(PyObject *obj_self, PyObject *dt)
         }
         else {
             PyObject *replace = PyObject_GetAttrString(tmp, "replace");
-            PyObject *args = PyTuple_New(0);
-            PyObject *kwargs = PyDict_New();
-
             Py_DECREF(tmp);
-            if (args == NULL || kwargs == NULL || replace == NULL) {
-                Py_XDECREF(args);
-                Py_XDECREF(kwargs);
-                Py_XDECREF(replace);
+            if (replace == NULL) {
+                return NULL;
+            }
+            PyObject *args = PyTuple_New(0);
+            if (args == NULL) {
+                Py_DECREF(replace);
+                return NULL;
+            }
+            PyObject *kwargs = PyDict_New();
+            if (kwargs == NULL) {
+                Py_DECREF(replace);
+                Py_DECREF(args);
                 return NULL;
             }
 
@@ -1709,11 +1714,11 @@ static Py_ssize_t
 parse_abbr(const char *const p, PyObject **abbr)
 {
     const char *ptr = p;
-    char buff = *ptr;
     const char *str_start;
     const char *str_end;
 
     if (*ptr == '<') {
+        char buff;
         ptr++;
         str_start = ptr;
         while ((buff = *ptr) != '>') {
@@ -2822,7 +2827,10 @@ error:
 }
 
 static PyModuleDef_Slot zoneinfomodule_slots[] = {
-    {Py_mod_exec, zoneinfomodule_exec}, {0, NULL}};
+    {Py_mod_exec, zoneinfomodule_exec},
+    {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
+    {0, NULL},
+};
 
 static struct PyModuleDef zoneinfomodule = {
     .m_base = PyModuleDef_HEAD_INIT,

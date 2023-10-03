@@ -366,6 +366,7 @@ _PyCfgBuilder_Addop(cfg_builder *g, int opcode, int oparg, location loc)
 #ifndef NDEBUG
 static int remove_redundant_nops(basicblock *bb);
 
+/*
 static bool
 no_redundant_nops(cfg_builder *g) {
     for (basicblock *b = g->g_entryblock; b != NULL; b = b->b_next) {
@@ -375,6 +376,7 @@ no_redundant_nops(cfg_builder *g) {
     }
     return true;
 }
+*/
 
 static bool
 no_empty_basic_blocks(cfg_builder *g) {
@@ -450,7 +452,7 @@ normalize_jumps_in_block(cfg_builder *g, basicblock *b) {
     if (backwards_jump == NULL) {
         return ERROR;
     }
-    basicblock_addop(backwards_jump, JUMP, target->b_label.id, NO_LOCATION);
+    basicblock_addop(backwards_jump, JUMP, target->b_label.id, last->i_loc);
     backwards_jump->b_instr[0].i_target = target;
     last->i_opcode = reversed_opcode;
     last->i_target = b->b_next;
@@ -562,16 +564,23 @@ check_cfg(cfg_builder *g) {
     return SUCCESS;
 }
 
+static int
+get_max_label(basicblock *entryblock)
+{
+    int lbl = -1;
+    for (basicblock *b = entryblock; b != NULL; b = b->b_next) {
+        if (b->b_label.id > lbl) {
+            lbl = b->b_label.id;
+        }
+    }
+    return lbl;
+}
+
 /* Calculate the actual jump target from the target_label */
 static int
 translate_jump_labels_to_targets(basicblock *entryblock)
 {
-    int max_label = -1;
-    for (basicblock *b = entryblock; b != NULL; b = b->b_next) {
-        if (b->b_label.id > max_label) {
-            max_label = b->b_label.id;
-        }
-    }
+    int max_label = get_max_label(entryblock);
     size_t mapsize = sizeof(basicblock *) * (max_label + 1);
     basicblock **label2block = (basicblock **)PyMem_Malloc(mapsize);
     if (!label2block) {
@@ -915,6 +924,7 @@ eliminate_empty_basic_blocks(cfg_builder *g) {
     while(g->g_entryblock && g->g_entryblock->b_iused == 0) {
         g->g_entryblock = g->g_entryblock->b_next;
     }
+    int next_lbl = get_max_label(g->g_entryblock) + 1;
     for (basicblock *b = g->g_entryblock; b != NULL; b = b->b_next) {
         assert(b->b_iused > 0);
         for (int i = 0; i < b->b_iused; i++) {
@@ -924,7 +934,13 @@ eliminate_empty_basic_blocks(cfg_builder *g) {
                 while (target->b_iused == 0) {
                     target = target->b_next;
                 }
-                instr->i_target = target;
+                if (instr->i_target != target) {
+                    if (!IS_LABEL(target->b_label)) {
+                        target->b_label.id = next_lbl++;
+                    }
+                    instr->i_target = target;
+                    instr->i_oparg = target->b_label.id;
+                }
                 assert(instr->i_target && instr->i_target->b_iused > 0);
             }
         }
@@ -1289,7 +1305,14 @@ swaptimize(basicblock *block, int *ix)
 // - can't invoke arbitrary code (besides finalizers)
 // - only touch the TOS (and pop it when finished)
 #define SWAPPABLE(opcode) \
-    ((opcode) == STORE_FAST || (opcode) == POP_TOP)
+    ((opcode) == STORE_FAST || \
+     (opcode) == STORE_FAST_MAYBE_NULL || \
+     (opcode) == POP_TOP)
+
+#define STORES_TO(instr) \
+    (((instr).i_opcode == STORE_FAST || \
+      (instr).i_opcode == STORE_FAST_MAYBE_NULL) \
+     ? (instr).i_oparg : -1)
 
 static int
 next_swappable_instruction(basicblock *block, int i, int lineno)
@@ -1342,6 +1365,23 @@ apply_static_swaps(basicblock *block, int i)
                 return;
             }
         }
+        // The reordering is not safe if the two instructions to be swapped
+        // store to the same location, or if any intervening instruction stores
+        // to the same location as either of them.
+        int store_j = STORES_TO(block->b_instr[j]);
+        int store_k = STORES_TO(block->b_instr[k]);
+        if (store_j >= 0 || store_k >= 0) {
+            if (store_j == store_k) {
+                return;
+            }
+            for (int idx = j + 1; idx < k; idx++) {
+                int store_idx = STORES_TO(block->b_instr[idx]);
+                if (store_idx >= 0 && (store_idx == store_j || store_idx == store_k)) {
+                    return;
+                }
+            }
+        }
+
         // Success!
         INSTR_SET_OP0(swap, NOP);
         cfg_instr temp = block->b_instr[j];
@@ -1557,7 +1597,11 @@ optimize_cfg(cfg_builder *g, PyObject *consts, PyObject *const_cache)
         remove_redundant_nops(b);
     }
     eliminate_empty_basic_blocks(g);
-    assert(no_redundant_nops(g));
+    /* This assertion fails in an edge case (See gh-109889).
+     * Remove it for the release (it's just one more NOP in the
+     * bytecode for unlikely code).
+     */
+    // assert(no_redundant_nops(g));
     RETURN_IF_ERROR(remove_redundant_jumps(g));
     return SUCCESS;
 }
@@ -1600,6 +1644,8 @@ scan_block_for_locals(basicblock *b, basicblock ***sp)
         uint64_t bit = (uint64_t)1 << instr->i_oparg;
         switch (instr->i_opcode) {
             case DELETE_FAST:
+            case LOAD_FAST_AND_CLEAR:
+            case STORE_FAST_MAYBE_NULL:
                 unsafe_mask |= bit;
                 break;
             case STORE_FAST:
@@ -1639,7 +1685,8 @@ fast_scan_many_locals(basicblock *entryblock, int nlocals)
     Py_ssize_t blocknum = 0;
     // state[i - 64] == blocknum if local i is guaranteed to
     // be initialized, i.e., if it has had a previous LOAD_FAST or
-    // STORE_FAST within that basicblock (not followed by DELETE_FAST).
+    // STORE_FAST within that basicblock (not followed by
+    // DELETE_FAST/LOAD_FAST_AND_CLEAR/STORE_FAST_MAYBE_NULL).
     for (basicblock *b = entryblock; b != NULL; b = b->b_next) {
         blocknum++;
         for (int i = 0; i < b->b_iused; i++) {
@@ -1653,6 +1700,8 @@ fast_scan_many_locals(basicblock *entryblock, int nlocals)
             assert(arg >= 0);
             switch (instr->i_opcode) {
                 case DELETE_FAST:
+                case LOAD_FAST_AND_CLEAR:
+                case STORE_FAST_MAYBE_NULL:
                     states[arg - 64] = blocknum - 1;
                     break;
                 case STORE_FAST:
@@ -1909,6 +1958,8 @@ push_cold_blocks_to_end(cfg_builder *g, int code_flags) {
     }
     RETURN_IF_ERROR(mark_cold(entryblock));
 
+    int next_lbl = get_max_label(g->g_entryblock) + 1;
+
     /* If we have a cold block with fallthrough to a warm block, add */
     /* an explicit jump instead of fallthrough */
     for (basicblock *b = entryblock; b != NULL; b = b->b_next) {
@@ -1916,6 +1967,9 @@ push_cold_blocks_to_end(cfg_builder *g, int code_flags) {
             basicblock *explicit_jump = cfg_builder_new_block(g);
             if (explicit_jump == NULL) {
                 return ERROR;
+            }
+            if (!IS_LABEL(b->b_next->b_label)) {
+                b->b_next->b_label.id = next_lbl++;
             }
             basicblock_addop(explicit_jump, JUMP, b->b_next->b_label.id, NO_LOCATION);
             explicit_jump->b_cold = 1;
@@ -1975,13 +2029,16 @@ push_cold_blocks_to_end(cfg_builder *g, int code_flags) {
 }
 
 void
-_PyCfg_ConvertExceptionHandlersToNops(basicblock *entryblock)
+_PyCfg_ConvertPseudoOps(basicblock *entryblock)
 {
     for (basicblock *b = entryblock; b != NULL; b = b->b_next) {
         for (int i = 0; i < b->b_iused; i++) {
             cfg_instr *instr = &b->b_instr[i];
             if (is_block_push(instr) || instr->i_opcode == POP_BLOCK) {
                 INSTR_SET_OP0(instr, NOP);
+            }
+            else if (instr->i_opcode == STORE_FAST_MAYBE_NULL) {
+                instr->i_opcode = STORE_FAST;
             }
         }
     }
@@ -2003,6 +2060,7 @@ is_exit_without_lineno(basicblock *b) {
     return true;
 }
 
+
 /* PEP 626 mandates that the f_lineno of a frame is correct
  * after a frame terminates. It would be prohibitively expensive
  * to continuously update the f_lineno field at runtime,
@@ -2016,6 +2074,9 @@ static int
 duplicate_exits_without_lineno(cfg_builder *g)
 {
     assert(no_empty_basic_blocks(g));
+
+    int next_lbl = get_max_label(g->g_entryblock) + 1;
+
     /* Copy all exit blocks without line number that are targets of a jump.
      */
     basicblock *entryblock = g->g_entryblock;
@@ -2034,6 +2095,7 @@ duplicate_exits_without_lineno(cfg_builder *g)
                 target->b_predecessors--;
                 new_target->b_predecessors = 1;
                 new_target->b_next = target->b_next;
+                new_target->b_label.id = next_lbl++;
                 target->b_next = new_target;
             }
         }

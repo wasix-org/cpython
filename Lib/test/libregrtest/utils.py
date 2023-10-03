@@ -31,7 +31,7 @@ def format_duration(seconds):
     return ' '.join(parts)
 
 
-def removepy(names):
+def strip_py_suffix(names: list[str]):
     if not names:
         return
     for idx, name in enumerate(names):
@@ -209,6 +209,13 @@ def clear_caches():
         pass
     else:
         fractions._hash_algorithm.cache_clear()
+
+    try:
+        inspect = sys.modules['inspect']
+    except KeyError:
+        pass
+    else:
+        inspect._shadowed_dict_from_mro_tuple.cache_clear()
 
 
 def get_build_info():

@@ -19,7 +19,6 @@ struct _frame {
     struct _PyInterpreterFrame *f_frame; /* points to the frame data */
     PyObject *f_trace;          /* Trace function */
     int f_lineno;               /* Current line number. Only valid if non-zero */
-    int f_last_traced_line;     /* The last line traced for this frame */
     char f_trace_lines;         /* Emit per-line trace events? */
     char f_trace_opcodes;       /* Emit per-opcode trace events? */
     char f_fast_as_locals;      /* Have the fast locals of this frame been converted to a dict? */
@@ -227,6 +226,9 @@ _PyFrame_ClearExceptCode(_PyInterpreterFrame * frame);
 int
 _PyFrame_Traverse(_PyInterpreterFrame *frame, visitproc visit, void *arg);
 
+PyObject *
+_PyFrame_GetLocals(_PyInterpreterFrame *frame, int include_hidden);
+
 int
 _PyFrame_FastToLocalsWithError(_PyInterpreterFrame *frame);
 
@@ -264,8 +266,6 @@ _PyFrame_PushUnchecked(PyThreadState *tstate, PyFunctionObject *func, int null_l
     _PyFrame_Initialize(new_frame, func, NULL, code, null_locals_from);
     return new_frame;
 }
-
-int _PyInterpreterFrame_GetLine(_PyInterpreterFrame *frame);
 
 static inline
 PyGenObject *_PyFrame_GetGenerator(_PyInterpreterFrame *frame)

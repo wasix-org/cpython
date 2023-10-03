@@ -737,7 +737,7 @@ class StatAttributeTests(unittest.TestCase):
         # denied. See issue 28075.
         # os.environ['TEMP'] should be located on a volume that
         # supports file ACLs.
-        fname = os.path.join(os.environ['TEMP'], self.fname)
+        fname = os.path.join(os.environ['TEMP'], self.fname + "_access")
         self.addCleanup(os_helper.unlink, fname)
         create_file(fname, b'ABC')
         # Deny the right to [S]YNCHRONIZE on the file to
@@ -4699,6 +4699,22 @@ class ForkTests(unittest.TestCase):
         _, out, err = assert_python_ok("-c", code, PYTHONOPTIMIZE='0')
         self.assertEqual(err.decode("utf-8"), "")
         self.assertEqual(out.decode("utf-8"), "")
+
+    def test_fork_at_exit(self):
+        code = """if 1:
+            import atexit
+            import os
+
+            def exit_handler():
+                pid = os.fork()
+                if pid != 0:
+                    print("shouldn't be printed")
+
+            atexit.register(exit_handler)
+        """
+        _, out, err = assert_python_ok("-c", code)
+        self.assertEqual(b"", out)
+        self.assertIn(b"can't fork at interpreter shutdown", err)
 
 
 # Only test if the C version is provided, otherwise TestPEP519 already tested

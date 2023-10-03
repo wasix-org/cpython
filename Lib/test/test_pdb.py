@@ -1793,8 +1793,50 @@ def test_pdb_issue_gh_101517():
     ...     'continue'
     ... ]):
     ...    test_function()
-    > <doctest test.test_pdb.test_pdb_issue_gh_101517[0]>(5)test_function()
-    -> import pdb; pdb.Pdb(nosigint=True, readrc=False).set_trace()
+    --Return--
+    > <doctest test.test_pdb.test_pdb_issue_gh_101517[0]>(None)test_function()->None
+    -> Warning: lineno is None
+    (Pdb) continue
+    """
+
+def test_pdb_issue_gh_108976():
+    """See GH-108976
+    Make sure setting f_trace_opcodes = True won't crash pdb
+    >>> def test_function():
+    ...     import sys
+    ...     sys._getframe().f_trace_opcodes = True
+    ...     import pdb; pdb.Pdb(nosigint=True, readrc=False).set_trace()
+    ...     a = 1
+    >>> with PdbTestInput([  # doctest: +NORMALIZE_WHITESPACE
+    ...     'continue'
+    ... ]):
+    ...    test_function()
+    bdb.Bdb.dispatch: unknown debugging event: 'opcode'
+    > <doctest test.test_pdb.test_pdb_issue_gh_108976[0]>(5)test_function()
+    -> a = 1
+    (Pdb) continue
+    """
+
+def test_pdb_ambiguous_statements():
+    """See GH-104301
+
+    Make sure that ambiguous statements prefixed by '!' are properly disambiguated
+
+    >>> with PdbTestInput([
+    ...     '! n = 42',  # disambiguated statement: reassign the name n
+    ...     'n',         # advance the debugger into the print()
+    ...     'continue'
+    ... ]):
+    ...     n = -1
+    ...     import pdb; pdb.Pdb(nosigint=True, readrc=False).set_trace()
+    ...     print(f"The value of n is {n}")
+    > <doctest test.test_pdb.test_pdb_ambiguous_statements[0]>(8)<module>()
+    -> print(f"The value of n is {n}")
+    (Pdb) ! n = 42
+    (Pdb) n
+    The value of n is 42
+    > <doctest test.test_pdb.test_pdb_ambiguous_statements[0]>(1)<module>()
+    -> with PdbTestInput([
     (Pdb) continue
     """
 

@@ -245,9 +245,12 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
     PyObject *(*create)(PyObject *, PyModuleDef*) = NULL;
     PyObject *nameobj;
     PyObject *m = NULL;
+    int has_multiple_interpreters_slot = 0;
+    void *multiple_interpreters = (void *)0;
     int has_execution_slots = 0;
     const char *name;
     int ret;
+    PyInterpreterState *interp = _PyInterpreterState_GET();
 
     PyModuleDef_Init(def);
 
@@ -287,6 +290,17 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
             case Py_mod_exec:
                 has_execution_slots = 1;
                 break;
+            case Py_mod_multiple_interpreters:
+                if (has_multiple_interpreters_slot) {
+                    PyErr_Format(
+                        PyExc_SystemError,
+                        "module %s has more than one 'multiple interpreters' slots",
+                        name);
+                    goto error;
+                }
+                multiple_interpreters = cur_slot->value;
+                has_multiple_interpreters_slot = 1;
+                break;
             default:
                 assert(cur_slot->slot < 0 || cur_slot->slot > _Py_mod_LAST_SLOT);
                 PyErr_Format(
@@ -295,6 +309,26 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
                     name, cur_slot->slot);
                 goto error;
         }
+    }
+
+    /* By default, multi-phase init modules are expected
+       to work under multiple interpreters. */
+    if (!has_multiple_interpreters_slot) {
+        multiple_interpreters = Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
+    }
+    if (multiple_interpreters == Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED) {
+        if (!_Py_IsMainInterpreter(interp)
+            && _PyImport_CheckSubinterpIncompatibleExtensionAllowed(name) < 0)
+        {
+            goto error;
+        }
+    }
+    else if (multiple_interpreters != Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
+             && interp->ceval.own_gil
+             && !_Py_IsMainInterpreter(interp)
+             && _PyImport_CheckSubinterpIncompatibleExtensionAllowed(name) < 0)
+    {
+        goto error;
     }
 
     if (create) {
@@ -420,6 +454,9 @@ PyModule_ExecDef(PyObject *module, PyModuleDef *def)
                         name);
                     return -1;
                 }
+                break;
+            case Py_mod_multiple_interpreters:
+                /* handled in PyModule_FromDefAndSpec2 */
                 break;
             default:
                 PyErr_Format(
@@ -898,26 +935,20 @@ static PyObject *
 module_get_annotations(PyModuleObject *m, void *Py_UNUSED(ignored))
 {
     PyObject *dict = PyObject_GetAttr((PyObject *)m, &_Py_ID(__dict__));
-
-    if ((dict == NULL) || !PyDict_Check(dict)) {
+    if (dict == NULL) {
+        return NULL;
+    }
+    if (!PyDict_Check(dict)) {
         PyErr_Format(PyExc_TypeError, "<module>.__dict__ is not a dictionary");
-        Py_XDECREF(dict);
+        Py_DECREF(dict);
         return NULL;
     }
 
-    PyObject *annotations;
-    /* there's no _PyDict_GetItemId without WithError, so let's LBYL. */
-    if (PyDict_Contains(dict, &_Py_ID(__annotations__))) {
-        annotations = PyDict_GetItemWithError(dict, &_Py_ID(__annotations__));
-        /*
-        ** _PyDict_GetItemIdWithError could still fail,
-        ** for instance with a well-timed Ctrl-C or a MemoryError.
-        ** so let's be totally safe.
-        */
-        if (annotations) {
-            Py_INCREF(annotations);
-        }
-    } else {
+    PyObject *annotations = PyDict_GetItemWithError(dict, &_Py_ID(__annotations__));
+    if (annotations) {
+        Py_INCREF(annotations);
+    }
+    else if (!PyErr_Occurred()) {
         annotations = PyDict_New();
         if (annotations) {
             int result = PyDict_SetItem(
@@ -936,8 +967,10 @@ module_set_annotations(PyModuleObject *m, PyObject *value, void *Py_UNUSED(ignor
 {
     int ret = -1;
     PyObject *dict = PyObject_GetAttr((PyObject *)m, &_Py_ID(__dict__));
-
-    if ((dict == NULL) || !PyDict_Check(dict)) {
+    if (dict == NULL) {
+        return -1;
+    }
+    if (!PyDict_Check(dict)) {
         PyErr_Format(PyExc_TypeError, "<module>.__dict__ is not a dictionary");
         goto exit;
     }
@@ -945,19 +978,17 @@ module_set_annotations(PyModuleObject *m, PyObject *value, void *Py_UNUSED(ignor
     if (value != NULL) {
         /* set */
         ret = PyDict_SetItem(dict, &_Py_ID(__annotations__), value);
-        goto exit;
     }
-
-    /* delete */
-    if (!PyDict_Contains(dict, &_Py_ID(__annotations__))) {
-        PyErr_Format(PyExc_AttributeError, "__annotations__");
-        goto exit;
+    else {
+        /* delete */
+        ret = PyDict_DelItem(dict, &_Py_ID(__annotations__));
+        if (ret < 0 && PyErr_ExceptionMatches(PyExc_KeyError)) {
+            PyErr_SetString(PyExc_AttributeError, "__annotations__");
+        }
     }
-
-    ret = PyDict_DelItem(dict, &_Py_ID(__annotations__));
 
 exit:
-    Py_XDECREF(dict);
+    Py_DECREF(dict);
     return ret;
 }
 

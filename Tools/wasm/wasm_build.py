@@ -542,7 +542,6 @@ class BuildProfile:
             cmd.append(f"--{opt}-wasm-dynamic-linking")
 
         if self.pthreads is not None:
-            assert self.host.is_emscripten
             opt = "enable" if self.pthreads else "disable"
             cmd.append(f"--{opt}-wasm-pthreads")
 
@@ -822,6 +821,14 @@ _profiles = [
         "wasix",
         support_level=SupportLevel.supported,
         host=Host.wasm32_wasix,
+        pthread=True,
+    ),
+    # wasm32-wasi-threads
+    BuildProfile(
+        "wasi-threads",
+        support_level=SupportLevel.experimental,
+        host=Host.wasm32_wasi,
+        pthreads=True,
     ),
     # no SDK available yet
     # BuildProfile(

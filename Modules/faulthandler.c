@@ -414,11 +414,10 @@ faulthandler_allocate_stack(void)
 
     int err = sigaltstack(&stack, &old_stack);
     if (err) {
+        PyErr_SetFromErrno(PyExc_OSError);
         /* Release the stack to retry sigaltstack() next time */
         PyMem_Free(stack.ss_sp);
         stack.ss_sp = NULL;
-
-        PyErr_SetFromErrno(PyExc_OSError);
         return -1;
     }
     return 0;
@@ -1274,6 +1273,8 @@ PyExec_faulthandler(PyObject *module) {
 
 static PyModuleDef_Slot faulthandler_slots[] = {
     {Py_mod_exec, PyExec_faulthandler},
+    // XXX gh-103092: fix isolation.
+    //{Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
     {0, NULL}
 };
 

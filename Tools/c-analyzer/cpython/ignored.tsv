@@ -169,6 +169,12 @@ Modules/_xxinterpchannelsmodule.c	-	_globals	-
 Python/pyfpe.c	-	PyFPE_counter	-
 
 ##-----------------------
+## thread-local variables
+
+Python/import.c	-	pkgcontext	-
+Python/pystate.c	-	_Py_tss_tstate	-
+
+##-----------------------
 ## should be const
 # XXX Make them const.
 
@@ -207,6 +213,7 @@ Modules/_decimal/_decimal.c	-	invalid_rounding_err	-
 Modules/_decimal/_decimal.c	-	invalid_signals_err	-
 Modules/_decimal/_decimal.c	-	signal_map	-
 Modules/_decimal/_decimal.c	-	ssize_constants	-
+Modules/_decimal/_decimal.c	-	INVALID_SIGNALDICT_ERROR_MSG	-
 Modules/_elementtree.c	-	ExpatMemoryHandler	-
 Modules/_hashopenssl.c	-	py_hashes	-
 Modules/_hacl/Hacl_Hash_SHA1.c	-	_h0	-
@@ -216,6 +223,7 @@ Modules/_io/_iomodule.c	-	static_types	-
 Modules/_io/textio.c	-	encodefuncs	-
 Modules/_io/winconsoleio.c	-	_PyWindowsConsoleIO_Type	-
 Modules/_localemodule.c	-	langinfo_constants	-
+Modules/_lsprof.c	-	callback_table	-
 Modules/_pickle.c	-	READ_WHOLE_LINE	-
 Modules/_sqlite/module.c	-	error_codes	-
 Modules/_sre/sre.c	pattern_repr	flag_names	-
@@ -355,6 +363,7 @@ Python/pystate.c	-	initial	-
 Python/specialize.c	-	adaptive_opcodes	-
 Python/specialize.c	-	cache_requirements	-
 Python/stdlib_module_names.h	-	_Py_stdlib_module_names	-
+Python/sysmodule.c	-	perf_map_state	-
 Python/sysmodule.c	-	_PySys_ImplCacheTag	-
 Python/sysmodule.c	-	_PySys_ImplName	-
 Python/sysmodule.c	-	whatstrings	-
@@ -417,11 +426,14 @@ Modules/_testcapi/watchers.c	-	g_dict_watch_events	-
 Modules/_testcapi/watchers.c	-	g_dict_watchers_installed	-
 Modules/_testcapi/watchers.c	-	g_type_modified_events	-
 Modules/_testcapi/watchers.c	-	g_type_watchers_installed	-
+Modules/_testcapi/watchers.c	-	code_watcher_ids	-
 Modules/_testcapi/watchers.c	-	num_code_object_created_events	-
 Modules/_testcapi/watchers.c	-	num_code_object_destroyed_events	-
 Modules/_testcapi/watchers.c	-	pyfunc_watchers	-
 Modules/_testcapi/watchers.c	-	func_watcher_ids	-
 Modules/_testcapi/watchers.c	-	func_watcher_callbacks	-
+Modules/_testcapimodule.c	-	BasicStaticTypes	-
+Modules/_testcapimodule.c	-	num_basic_static_types_used	-
 Modules/_testcapimodule.c	-	ContainerNoGC_members	-
 Modules/_testcapimodule.c	-	ContainerNoGC_type	-
 Modules/_testcapimodule.c	-	FmData	-
@@ -513,6 +525,7 @@ Modules/_testcapimodule.c	-	g_type_watchers_installed	-
 Modules/_testimportmultiple.c	-	_barmodule	-
 Modules/_testimportmultiple.c	-	_foomodule	-
 Modules/_testimportmultiple.c	-	_testimportmultiple	-
+Modules/_testinternalcapi.c	-	pending_identify_result	-
 Modules/_testmultiphase.c	-	Example_Type_slots	-
 Modules/_testmultiphase.c	-	Example_Type_spec	-
 Modules/_testmultiphase.c	-	Example_methods	-

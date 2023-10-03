@@ -26,11 +26,9 @@
 #include "pycore_sysmodule.h"     // _PySys_ClearAuditHooks()
 #include "pycore_traceback.h"     // _Py_DumpTracebackThreads()
 #include "pycore_typeobject.h"    // _PyTypes_InitTypes()
+#include "pycore_typevarobject.h" // _Py_clear_generic_types()
 #include "pycore_unicodeobject.h" // _PyUnicode_InitTypes()
 #include "opcode.h"
-
-extern PyStatus _PyIO_InitTypes(PyInterpreterState *interp);
-extern void _PyIO_FiniTypes(PyInterpreterState *interp);
 
 #include <locale.h>               // setlocale()
 #include <stdlib.h>               // getenv()
@@ -580,17 +578,20 @@ init_interp_settings(PyInterpreterState *interp,
         interp->feature_flags |= Py_RTFLAGS_MULTI_INTERP_EXTENSIONS;
     }
 
+    /* We check "gil" in init_interp_create_gil(). */
+
     return _PyStatus_OK();
 }
 
 
 static PyStatus
-init_interp_create_gil(PyThreadState *tstate)
+init_interp_create_gil(PyThreadState *tstate, int gil)
 {
     PyStatus status;
 
     /* finalize_interp_delete() comment explains why _PyEval_FiniGIL() is
        only called here. */
+    // XXX This is broken with a per-interpreter GIL.
     _PyEval_FiniGIL(tstate->interp);
 
     /* Auto-thread-state API */
@@ -599,8 +600,17 @@ init_interp_create_gil(PyThreadState *tstate)
         return status;
     }
 
+    int own_gil;
+    switch (gil) {
+    case PyInterpreterConfig_DEFAULT_GIL: own_gil = 0; break;
+    case PyInterpreterConfig_SHARED_GIL: own_gil = 0; break;
+    case PyInterpreterConfig_OWN_GIL: own_gil = 1; break;
+    default:
+        return _PyStatus_ERR("invalid interpreter config 'gil' value");
+    }
+
     /* Create the GIL and take it */
-    status = _PyEval_InitGIL(tstate);
+    status = _PyEval_InitGIL(tstate, own_gil);
     if (_PyStatus_EXCEPTION(status)) {
         return status;
     }
@@ -632,7 +642,9 @@ pycore_create_interpreter(_PyRuntimeState *runtime,
         return status;
     }
 
-    const PyInterpreterConfig config = _PyInterpreterConfig_LEGACY_INIT;
+    PyInterpreterConfig config = _PyInterpreterConfig_LEGACY_INIT;
+    // The main interpreter always has its own GIL.
+    config.gil = PyInterpreterConfig_OWN_GIL;
     status = init_interp_settings(interp, &config);
     if (_PyStatus_EXCEPTION(status)) {
         return status;
@@ -643,9 +655,10 @@ pycore_create_interpreter(_PyRuntimeState *runtime,
         return _PyStatus_ERR("can't make first thread");
     }
     _PyThreadState_Bind(tstate);
-    (void) PyThreadState_Swap(tstate);
+    // XXX For now we do this before the GIL is created.
+    (void) _PyThreadState_SwapNoGIL(tstate);
 
-    status = init_interp_create_gil(tstate);
+    status = init_interp_create_gil(tstate, config.gil);
     if (_PyStatus_EXCEPTION(status)) {
         return status;
     }
@@ -700,11 +713,6 @@ pycore_init_types(PyInterpreterState *interp)
 
     if (_PyExc_InitTypes(interp) < 0) {
         return _PyStatus_ERR("failed to initialize an exception type");
-    }
-
-    status = _PyIO_InitTypes(interp);
-    if (_PyStatus_EXCEPTION(status)) {
-        return status;
     }
 
     status = _PyExc_InitGlobalObjects(interp);
@@ -1132,10 +1140,11 @@ init_interp_main(PyThreadState *tstate)
             return _PyStatus_ERR("can't initialize signals");
         }
 
-        if (_PyTraceMalloc_Init(config->tracemalloc) < 0) {
-            return _PyStatus_ERR("can't initialize tracemalloc");
+        if (config->tracemalloc) {
+           if (_PyTraceMalloc_Start(config->tracemalloc) < 0) {
+                return _PyStatus_ERR("can't start tracemalloc");
+            }
         }
-
 
 #ifdef PY_HAVE_PERF_TRAMPOLINE
         if (config->perf_profiling) {
@@ -1663,8 +1672,6 @@ flush_std_files(void)
 static void
 finalize_interp_types(PyInterpreterState *interp)
 {
-    _PyIO_FiniTypes(interp);
-
     _PyUnicode_FiniTypes(interp);
     _PySys_FiniTypes(interp);
     _PyExc_Fini(interp);
@@ -1704,6 +1711,7 @@ finalize_interp_clear(PyThreadState *tstate)
     int is_main_interp = _Py_IsMainInterpreter(tstate->interp);
 
     _PyExc_ClearExceptionGroupType(tstate->interp);
+    _Py_clear_generic_types(tstate->interp);
 
     /* Clear interpreter state and all thread states */
     _PyInterpreterState_Clear(tstate);
@@ -1778,6 +1786,7 @@ Py_FinalizeEx(void)
      */
 
     _PyAtExit_Call(tstate->interp);
+    PyUnstable_PerfMapState_Fini();
 
     /* Copy the core config, PyInterpreterState_Delete() free
        the core config memory */
@@ -1794,6 +1803,7 @@ Py_FinalizeEx(void)
 
     /* Remaining daemon threads will automatically exit
        when they attempt to take the GIL (ex: PyEval_RestoreThread()). */
+    _PyInterpreterState_SetFinalizing(tstate->interp, tstate);
     _PyRuntimeState_SetFinalizing(runtime, tstate);
     runtime->initialized = 0;
     runtime->core_initialized = 0;
@@ -1910,11 +1920,11 @@ Py_FinalizeEx(void)
     }
 
     if (dump_refs) {
-        _Py_PrintReferences(stderr);
+        _Py_PrintReferences(tstate->interp, stderr);
     }
 
     if (dump_refs_fp != NULL) {
-        _Py_PrintReferences(dump_refs_fp);
+        _Py_PrintReferences(tstate->interp, dump_refs_fp);
     }
 #endif /* Py_TRACE_REFS */
 
@@ -1950,11 +1960,11 @@ Py_FinalizeEx(void)
      */
 
     if (dump_refs) {
-        _Py_PrintReferenceAddresses(stderr);
+        _Py_PrintReferenceAddresses(tstate->interp, stderr);
     }
 
     if (dump_refs_fp != NULL) {
-        _Py_PrintReferenceAddresses(dump_refs_fp);
+        _Py_PrintReferenceAddresses(tstate->interp, dump_refs_fp);
         fclose(dump_refs_fp);
     }
 #endif /* Py_TRACE_REFS */
@@ -2023,11 +2033,20 @@ new_interpreter(PyThreadState **tstate_p, const PyInterpreterConfig *config)
     }
     _PyThreadState_Bind(tstate);
 
-    PyThreadState *save_tstate = PyThreadState_Swap(tstate);
+    // XXX For now we do this before the GIL is created.
+    PyThreadState *save_tstate = _PyThreadState_SwapNoGIL(tstate);
+    int has_gil = 0;
+
+    /* From this point until the init_interp_create_gil() call,
+       we must not do anything that requires that the GIL be held
+       (or otherwise exist).  That applies whether or not the new
+       interpreter has its own GIL (e.g. the main interpreter). */
 
     /* Copy the current interpreter config into the new interpreter */
     const PyConfig *src_config;
     if (save_tstate != NULL) {
+        // XXX Might new_interpreter() have been called without the GIL held?
+        _PyEval_ReleaseLock(save_tstate->interp, save_tstate);
         src_config = _PyInterpreterState_GetConfig(save_tstate->interp);
     }
     else
@@ -2037,20 +2056,25 @@ new_interpreter(PyThreadState **tstate_p, const PyInterpreterConfig *config)
         src_config = _PyInterpreterState_GetConfig(main_interp);
     }
 
+    /* This does not require that the GIL be held. */
     status = _PyConfig_Copy(&interp->config, src_config);
     if (_PyStatus_EXCEPTION(status)) {
         goto error;
     }
 
+    /* This does not require that the GIL be held. */
     status = init_interp_settings(interp, config);
     if (_PyStatus_EXCEPTION(status)) {
         goto error;
     }
 
-    status = init_interp_create_gil(tstate);
+    status = init_interp_create_gil(tstate, config->gil);
     if (_PyStatus_EXCEPTION(status)) {
         goto error;
     }
+    has_gil = 1;
+
+    /* No objects have been created yet. */
 
     status = pycore_interp_init(tstate);
     if (_PyStatus_EXCEPTION(status)) {
@@ -2070,7 +2094,12 @@ error:
 
     /* Oops, it didn't work.  Undo it all. */
     PyErr_PrintEx(0);
-    PyThreadState_Swap(save_tstate);
+    if (has_gil) {
+        PyThreadState_Swap(save_tstate);
+    }
+    else {
+        _PyThreadState_SwapNoGIL(save_tstate);
+    }
     PyThreadState_Clear(tstate);
     PyThreadState_Delete(tstate);
     PyInterpreterState_Delete(interp);
@@ -2125,11 +2154,18 @@ Py_EndInterpreter(PyThreadState *tstate)
     // Wrap up existing "threading"-module-created, non-daemon threads.
     wait_for_thread_shutdown(tstate);
 
+    // Make any remaining pending calls.
+    _Py_FinishPendingCalls(tstate);
+
     _PyAtExit_Call(tstate->interp);
 
     if (tstate != interp->threads.head || tstate->next != NULL) {
         Py_FatalError("not the last thread");
     }
+
+    /* Remaining daemon threads will automatically exit
+       when they attempt to take the GIL (ex: PyEval_RestoreThread()). */
+    _PyInterpreterState_SetFinalizing(interp, tstate);
 
     // XXX Call something like _PyImport_Disable() here?
 
@@ -2139,6 +2175,18 @@ Py_EndInterpreter(PyThreadState *tstate)
 
     finalize_interp_clear(tstate);
     finalize_interp_delete(tstate->interp);
+}
+
+int
+_Py_IsInterpreterFinalizing(PyInterpreterState *interp)
+{
+    /* We check the runtime first since, in a daemon thread,
+       interp might be dangling pointer. */
+    PyThreadState *finalizing = _PyRuntimeState_GetFinalizing(&_PyRuntime);
+    if (finalizing == NULL) {
+        finalizing = _PyInterpreterState_GetFinalizing(interp);
+    }
+    return finalizing != NULL;
 }
 
 /* Add the __main__ module */
@@ -2942,24 +2990,35 @@ wait_for_thread_shutdown(PyThreadState *tstate)
 
 int Py_AtExit(void (*func)(void))
 {
-    if (_PyRuntime.atexit.ncallbacks >= NEXITFUNCS)
+    struct _atexit_runtime_state *state = &_PyRuntime.atexit;
+    PyThread_acquire_lock(state->mutex, WAIT_LOCK);
+    if (state->ncallbacks >= NEXITFUNCS) {
+        PyThread_release_lock(state->mutex);
         return -1;
-    _PyRuntime.atexit.callbacks[_PyRuntime.atexit.ncallbacks++] = func;
+    }
+    state->callbacks[state->ncallbacks++] = func;
+    PyThread_release_lock(state->mutex);
     return 0;
 }
 
 static void
 call_ll_exitfuncs(_PyRuntimeState *runtime)
 {
+    atexit_callbackfunc exitfunc;
     struct _atexit_runtime_state *state = &runtime->atexit;
+
+    PyThread_acquire_lock(state->mutex, WAIT_LOCK);
     while (state->ncallbacks > 0) {
         /* pop last function from the list */
         state->ncallbacks--;
-        atexit_callbackfunc exitfunc = state->callbacks[state->ncallbacks];
+        exitfunc = state->callbacks[state->ncallbacks];
         state->callbacks[state->ncallbacks] = NULL;
 
+        PyThread_release_lock(state->mutex);
         exitfunc();
+        PyThread_acquire_lock(state->mutex, WAIT_LOCK);
     }
+    PyThread_release_lock(state->mutex);
 
     fflush(stdout);
     fflush(stderr);

@@ -43,13 +43,13 @@ interpreter.
       adaptive bytecode can be shown by passing ``adaptive=True``.
 
 
-Example: Given the function :func:`myfunc`::
+Example: Given the function :func:`!myfunc`::
 
    def myfunc(alist):
        return len(alist)
 
 the following command can be used to display the disassembly of
-:func:`myfunc`:
+:func:`!myfunc`:
 
 .. doctest::
 
@@ -188,9 +188,9 @@ operation is being performed, so the intermediate analysis object isn't useful:
    For a module, it disassembles all functions. For a class, it disassembles
    all methods (including class and static methods). For a code object or
    sequence of raw bytecode, it prints one line per bytecode instruction.
-   It also recursively disassembles nested code objects (the code of
-   comprehensions, generator expressions and nested functions, and the code
-   used for building nested classes).
+   It also recursively disassembles nested code objects. These can include
+   generator expressions, nested functions, the bodies of nested classes,
+   and the code objects used for :ref:`annotation scopes <annotation-scopes>`.
    Strings are first compiled to code objects with the :func:`compile`
    built-in function before being disassembled.  If no object is provided, this
    function disassembles the last traceback.
@@ -528,7 +528,7 @@ not have to be) the original ``STACK[-2]``.
 
       key = STACK.pop()
       container = STACK.pop()
-      STACK.append(container[index])
+      STACK.append(container[key])
 
 
 .. opcode:: STORE_SUBSCR
@@ -622,8 +622,8 @@ not have to be) the original ``STACK[-2]``.
 
    .. versionadded:: 3.8
 
-    .. versionchanged:: 3.11
-       Exception representation on the stack now consist of one, not three, items.
+   .. versionchanged:: 3.11
+      Exception representation on the stack now consist of one, not three, items.
 
 
 .. opcode:: CLEANUP_THROW
@@ -793,7 +793,7 @@ iterations of the loop.
 
 .. opcode:: LOAD_BUILD_CLASS
 
-   Pushes :func:`builtins.__build_class__` onto the stack.  It is later called
+   Pushes :func:`!builtins.__build_class__` onto the stack.  It is later called
    to construct a class.
 
 
@@ -818,7 +818,7 @@ iterations of the loop.
 .. opcode:: MATCH_MAPPING
 
    If ``STACK[-1]`` is an instance of :class:`collections.abc.Mapping` (or, more
-   technically: if it has the :const:`Py_TPFLAGS_MAPPING` flag set in its
+   technically: if it has the :c:macro:`Py_TPFLAGS_MAPPING` flag set in its
    :c:member:`~PyTypeObject.tp_flags`), push ``True`` onto the stack.  Otherwise,
    push ``False``.
 
@@ -829,7 +829,7 @@ iterations of the loop.
 
    If ``STACK[-1]`` is an instance of :class:`collections.abc.Sequence` and is *not* an instance
    of :class:`str`/:class:`bytes`/:class:`bytearray` (or, more technically: if it has
-   the :const:`Py_TPFLAGS_SEQUENCE` flag set in its :c:member:`~PyTypeObject.tp_flags`),
+   the :c:macro:`Py_TPFLAGS_SEQUENCE` flag set in its :c:member:`~PyTypeObject.tp_flags`),
    push ``True`` onto the stack.  Otherwise, push ``False``.
 
    .. versionadded:: 3.10
@@ -851,22 +851,23 @@ iterations of the loop.
 .. opcode:: STORE_NAME (namei)
 
    Implements ``name = STACK.pop()``. *namei* is the index of *name* in the attribute
-   :attr:`co_names` of the code object. The compiler tries to use
-   :opcode:`STORE_FAST` or :opcode:`STORE_GLOBAL` if possible.
+   :attr:`!co_names` of the :ref:`code object <code-objects>`.
+   The compiler tries to use :opcode:`STORE_FAST` or :opcode:`STORE_GLOBAL` if possible.
 
 
 .. opcode:: DELETE_NAME (namei)
 
-   Implements ``del name``, where *namei* is the index into :attr:`co_names`
-   attribute of the code object.
+   Implements ``del name``, where *namei* is the index into :attr:`!co_names`
+   attribute of the :ref:`code object <code-objects>`.
 
 
 .. opcode:: UNPACK_SEQUENCE (count)
 
    Unpacks ``STACK[-1]`` into *count* individual values, which are put onto the stack
-   right-to-left::
+   right-to-left. Require there to be exactly *count* values.::
 
-      STACK.extend(STACK.pop()[:count:-1])
+      assert(len(STACK[-1]) == count)
+      STACK.extend(STACK.pop()[:-count-1:-1])
 
 
 .. opcode:: UNPACK_EX (counts)
@@ -896,7 +897,8 @@ iterations of the loop.
       value = STACK.pop()
       obj.name = value
 
-   where *namei* is the index of name in :attr:`co_names`.
+   where *namei* is the index of name in :attr:`!co_names` of the
+   :ref:`code object <code-objects>`.
 
 .. opcode:: DELETE_ATTR (namei)
 
@@ -905,7 +907,8 @@ iterations of the loop.
       obj = STACK.pop()
       del obj.name
 
-   where *namei* is the index of name into :attr:`co_names`.
+   where *namei* is the index of name into :attr:`!co_names` of the
+   :ref:`code object <code-objects>`.
 
 
 .. opcode:: STORE_GLOBAL (namei)
@@ -926,6 +929,27 @@ iterations of the loop.
 .. opcode:: LOAD_NAME (namei)
 
    Pushes the value associated with ``co_names[namei]`` onto the stack.
+   The name is looked up within the locals, then the globals, then the builtins.
+
+
+.. opcode:: LOAD_LOCALS
+
+   Pushes a reference to the locals dictionary onto the stack.  This is used
+   to prepare namespace dictionaries for :opcode:`LOAD_FROM_DICT_OR_DEREF`
+   and :opcode:`LOAD_FROM_DICT_OR_GLOBALS`.
+
+   .. versionadded:: 3.12
+
+
+.. opcode:: LOAD_FROM_DICT_OR_GLOBALS (i)
+
+   Pops a mapping off the stack and looks up the value for ``co_names[namei]``.
+   If the name is not found there, looks it up in the globals and then the builtins,
+   similar to :opcode:`LOAD_GLOBAL`.
+   This is used for loading global variables in
+   :ref:`annotation scopes <annotation-scopes>` within class bodies.
+
+   .. versionadded:: 3.12
 
 
 .. opcode:: BUILD_TUPLE (count)
@@ -1196,6 +1220,14 @@ iterations of the loop.
 
    .. versionadded:: 3.12
 
+.. opcode:: LOAD_FAST_AND_CLEAR (var_num)
+
+   Pushes a reference to the local ``co_varnames[var_num]`` onto the stack (or
+   pushes ``NULL`` onto the stack if the local variable has not been
+   initialized) and sets ``co_varnames[var_num]`` to ``NULL``.
+
+   .. versionadded:: 3.12
+
 .. opcode:: STORE_FAST (var_num)
 
    Stores ``STACK.pop()`` into the local ``co_varnames[var_num]``.
@@ -1235,16 +1267,17 @@ iterations of the loop.
       ``i`` is no longer offset by the length of ``co_varnames``.
 
 
-.. opcode:: LOAD_CLASSDEREF (i)
+.. opcode:: LOAD_FROM_DICT_OR_DEREF (i)
 
-   Much like :opcode:`LOAD_DEREF` but first checks the locals dictionary before
-   consulting the cell.  This is used for loading free variables in class
-   bodies.
+   Pops a mapping off the stack and looks up the name associated with
+   slot ``i`` of the "fast locals" storage in this mapping.
+   If the name is not found there, loads it from the cell contained in
+   slot ``i``, similar to :opcode:`LOAD_DEREF`. This is used for loading
+   free variables in class bodies (which previously used
+   :opcode:`!LOAD_CLASSDEREF`) and in
+   :ref:`annotation scopes <annotation-scopes>` within class bodies.
 
-   .. versionadded:: 3.4
-
-   .. versionchanged:: 3.11
-      ``i`` is no longer offset by the length of ``co_varnames``.
+   .. versionadded:: 3.12
 
 
 .. opcode:: STORE_DEREF (i)
@@ -1359,15 +1392,18 @@ iterations of the loop.
    * ``0x02`` a dictionary of keyword-only parameters' default values
    * ``0x04`` a tuple of strings containing parameters' annotations
    * ``0x08`` a tuple containing cells for free variables, making a closure
-   * the code associated with the function (at ``STACK[-2]``)
-   * the :term:`qualified name` of the function (at ``STACK[-1]``)
+   * the code associated with the function (at ``STACK[-1]``)
 
    .. versionchanged:: 3.10
       Flag value ``0x04`` is a tuple of strings instead of dictionary
 
+   .. versionchanged:: 3.11
+      Qualified name at ``STACK[-1]`` was removed.
+
+
 .. opcode:: BUILD_SLICE (argc)
 
-   .. index:: builtin: slice
+   .. index:: pair: built-in function; slice
 
    Pushes a slice object on the stack.  *argc* must be 2 or 3.  If it is 2, implements::
 
@@ -1496,13 +1532,45 @@ iterations of the loop.
 
    The operand determines which intrinsic function is called:
 
-   * ``0`` Not valid
-   * ``1`` Prints the argument to standard out. Used in the REPL.
-   * ``2`` Performs ``import *`` for the named module.
-   * ``3`` Extracts the return value from a ``StopIteration`` exception.
-   * ``4`` Wraps an aync generator value
-   * ``5`` Performs the unary ``+`` operation
-   * ``6`` Converts a list to a tuple
+   +-----------------------------------+-----------------------------------+
+   | Operand                           | Description                       |
+   +===================================+===================================+
+   | ``INTRINSIC_1_INVALID``           | Not valid                         |
+   +-----------------------------------+-----------------------------------+
+   | ``INTRINSIC_PRINT``               | Prints the argument to standard   |
+   |                                   | out. Used in the REPL.            |
+   +-----------------------------------+-----------------------------------+
+   | ``INTRINSIC_IMPORT_STAR``         | Performs ``import *`` for the     |
+   |                                   | named module.                     |
+   +-----------------------------------+-----------------------------------+
+   | ``INTRINSIC_STOPITERATION_ERROR`` | Extracts the return value from a  |
+   |                                   | ``StopIteration`` exception.      |
+   +-----------------------------------+-----------------------------------+
+   | ``INTRINSIC_ASYNC_GEN_WRAP``      | Wraps an aync generator value     |
+   +-----------------------------------+-----------------------------------+
+   | ``INTRINSIC_UNARY_POSITIVE``      | Performs the unary ``+``          |
+   |                                   | operation                         |
+   +-----------------------------------+-----------------------------------+
+   | ``INTRINSIC_LIST_TO_TUPLE``       | Converts a list to a tuple        |
+   +-----------------------------------+-----------------------------------+
+   | ``INTRINSIC_TYPEVAR``             | Creates a :class:`typing.TypeVar` |
+   +-----------------------------------+-----------------------------------+
+   | ``INTRINSIC_PARAMSPEC``           | Creates a                         |
+   |                                   | :class:`typing.ParamSpec`         |
+   +-----------------------------------+-----------------------------------+
+   | ``INTRINSIC_TYPEVARTUPLE``        | Creates a                         |
+   |                                   | :class:`typing.TypeVarTuple`      |
+   +-----------------------------------+-----------------------------------+
+   | ``INTRINSIC_SUBSCRIPT_GENERIC``   | Returns :class:`typing.Generic`   |
+   |                                   | subscripted with the argument     |
+   +-----------------------------------+-----------------------------------+
+   | ``INTRINSIC_TYPEALIAS``           | Creates a                         |
+   |                                   | :class:`typing.TypeAliasType`;    |
+   |                                   | used in the :keyword:`type`       |
+   |                                   | statement. The argument is a tuple|
+   |                                   | of the type alias's name,         |
+   |                                   | type parameters, and value.       |
+   +-----------------------------------+-----------------------------------+
 
    .. versionadded:: 3.12
 
@@ -1514,8 +1582,25 @@ iterations of the loop.
 
    The operand determines which intrinsic function is called:
 
-   * ``0`` Not valid
-   * ``1`` Calculates the :exc:`ExceptionGroup` to raise from a ``try-except*``.
+   +----------------------------------------+-----------------------------------+
+   | Operand                                | Description                       |
+   +========================================+===================================+
+   | ``INTRINSIC_2_INVALID``                | Not valid                         |
+   +----------------------------------------+-----------------------------------+
+   | ``INTRINSIC_PREP_RERAISE_STAR``        | Calculates the                    |
+   |                                        | :exc:`ExceptionGroup` to raise    |
+   |                                        | from a ``try-except*``.           |
+   +----------------------------------------+-----------------------------------+
+   | ``INTRINSIC_TYPEVAR_WITH_BOUND``       | Creates a :class:`typing.TypeVar` |
+   |                                        | with a bound.                     |
+   +----------------------------------------+-----------------------------------+
+   | ``INTRINSIC_TYPEVAR_WITH_CONSTRAINTS`` | Creates a                         |
+   |                                        | :class:`typing.TypeVar` with      |
+   |                                        | constraints.                      |
+   +----------------------------------------+-----------------------------------+
+   | ``INTRINSIC_SET_FUNCTION_TYPE_PARAMS`` | Sets the ``__type_params__``      |
+   |                                        | attribute of a function.          |
+   +----------------------------------------+-----------------------------------+
 
    .. versionadded:: 3.12
 

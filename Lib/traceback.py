@@ -608,11 +608,21 @@ def _extract_caret_anchors_from_line_segment(segment):
                         and not operator_str[operator_offset + 1].isspace()
                     ):
                         right_anchor += 1
+
+                    while left_anchor < len(segment) and ((ch := segment[left_anchor]).isspace() or ch in ")#"):
+                        left_anchor += 1
+                        right_anchor += 1
                     return _Anchors(normalize(left_anchor), normalize(right_anchor))
                 case ast.Subscript():
-                    subscript_start = normalize(expr.value.end_col_offset)
-                    subscript_end = normalize(expr.slice.end_col_offset + 1)
-                    return _Anchors(subscript_start, subscript_end)
+                    left_anchor = normalize(expr.value.end_col_offset)
+                    right_anchor = normalize(expr.slice.end_col_offset + 1)
+                    while left_anchor < len(segment) and ((ch := segment[left_anchor]).isspace() or ch != "["):
+                        left_anchor += 1
+                    while right_anchor < len(segment) and ((ch := segment[right_anchor]).isspace() or ch != "]"):
+                        right_anchor += 1
+                    if right_anchor < len(segment):
+                        right_anchor += 1
+                    return _Anchors(left_anchor, right_anchor)
 
     return None
 
@@ -658,6 +668,8 @@ class TracebackException:
 
     - :attr:`__cause__` A TracebackException of the original *__cause__*.
     - :attr:`__context__` A TracebackException of the original *__context__*.
+    - :attr:`exceptions` For exception groups - a list of TracebackException
+      instances for the nested *exceptions*.  ``None`` for other exceptions.
     - :attr:`__suppress_context__` The *__suppress_context__* value from the
       original exception.
     - :attr:`stack` A `StackSummary` representing the traceback.
@@ -672,8 +684,8 @@ class TracebackException:
       occurred.
     - :attr:`offset` For syntax errors - the offset into the text where the
       error occurred.
-    - :attr:`end_offset` For syntax errors - the offset into the text where the
-      error occurred. Can be `None` if not present.
+    - :attr:`end_offset` For syntax errors - the end offset into the text where
+      the error occurred. Can be `None` if not present.
     - :attr:`msg` For syntax errors - the compiler error message.
     """
 
