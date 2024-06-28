@@ -98,7 +98,7 @@ SYSCONFIG_NAMES = (
     "_sysconfigdata__emscripten_wasm32-emscripten",
     "_sysconfigdata__emscripten_wasm32-emscripten",
     "_sysconfigdata__wasi_wasm32-wasi",
-    "_sysconfigdata__wasi_wasm64-wasi",    
+    "_sysconfigdata__wasi_wasm64-wasi",
     "_sysconfigdata__wasix_wasm32-wasi",
     "_sysconfigdata__wasix_wasm64-wasi",
 )
