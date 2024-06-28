@@ -15077,7 +15077,7 @@ os_urandom_impl(PyObject *module, Py_ssize_t size)
     return bytes;
 }
 
-#ifdef HAVE_MEMFD_CREATE
+#if defined(HAVE_MEMFD_CREATE) && !defined(__wasm32)
 /*[clinic input]
 os.memfd_create
 
@@ -17597,7 +17597,7 @@ all_ins(PyObject *m)
     if (PyModule_AddIntMacro(m, GRND_RANDOM)) return -1;
     if (PyModule_AddIntMacro(m, GRND_NONBLOCK)) return -1;
 #endif
-#ifdef HAVE_MEMFD_CREATE
+#if defined(HAVE_MEMFD_CREATE) && !defined(__wasm32)
     if (PyModule_AddIntMacro(m, MFD_CLOEXEC)) return -1;
     if (PyModule_AddIntMacro(m, MFD_ALLOW_SEALING)) return -1;
 #ifdef MFD_HUGETLB
@@ -17851,7 +17851,7 @@ static const struct have_function {
     { "HAVE_LUTIMES", NULL },
 #endif
 
-#ifdef HAVE_MEMFD_CREATE
+#if defined(HAVE_MEMFD_CREATE) && !defined(__wasm32)
     { "HAVE_MEMFD_CREATE", NULL },
 #endif
 

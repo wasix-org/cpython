@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+
+"$@"
+
+echo "Running wasm-opt..."
+wasm-opt -O4 --asyncify -g python.wasm -o python.wasm
+
+echo "Done"
