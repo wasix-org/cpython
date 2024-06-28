@@ -54,7 +54,7 @@ jobs:
         ./wasix.sh
     - name: "Install Wasmer"
       run: |
-        WASMER_DIR=/bin curl https://get.wasmer.io -sSfL | sh
+        curl https://get.wasmer.io -sSfL | WASMER_DIR=/bin sh
     - name: "Build Python"
       run: |
         WASM_RUNTIME=wasmer \
