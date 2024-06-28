@@ -14,6 +14,7 @@ jobs:
       WASI_SDK_VERSION: 21
       WASI_SDK_PATH: /opt/wasi-sdk
       WASIX_SYSROOT: /opt/wasix-libc
+      WASMER_DIR: "/opt/wasmer"
       WASIX_LIBC_TAG: "v2024-06-20.1"
       OPENSSL_DIR: "/opt/openssl"
       ZLIB_DIR: "/opt/zlib"
@@ -54,9 +55,11 @@ jobs:
         ./wasix.sh
     - name: "Install Wasmer"
       run: |
-        curl https://get.wasmer.io -sSfL | WASMER_DIR=/bin sh
+        mkdir ${{ env.WASMER_DIR }}
+        curl https://get.wasmer.io -sSfL | sh
     - name: "Build Python"
       run: |
+        PATH="$PATH:${{ env.WASMER_DIR }}/bin"
         WASM_RUNTIME=wasmer \
         WASIX_ZLIB_CFLAGS="-I${{ env.ZLIB_DIR }}" \
         WASIX_ZLIB_LIBS="-L${{ env.ZLIB_DIR }} -lz" \
