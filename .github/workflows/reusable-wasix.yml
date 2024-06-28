@@ -45,12 +45,12 @@ jobs:
     - name: "Compile openssl"
       run: |
         git clone https://github.com/wasix-org/openssl ${{ env.OPENSSL_DIR }}
-        cd openssl
+        cd ${{ env.OPENSSL_DIR }}
         ./wasix.sh
     - name: "Compile zlib"
       run: |
         git clone https://github.com/wasix-org/zlib ${{ env.ZLIB_DIR }}
-        cd zlib
+        cd ${{ env.ZLIB_DIR }}
         ./wasix.sh
     - name: "Install Wasmer"
       run: |
