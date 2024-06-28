@@ -407,7 +407,7 @@ class Host(enum.Enum):
     def is_wasi(self) -> bool:
         cls = type(self)
         return self in {cls.wasm32_wasi, cls.wasm64_wasi}
-    
+
     @property
     def is_wasix(self) -> bool:
         cls = type(self)
@@ -813,7 +813,7 @@ _profiles = [
         support_level=SupportLevel.experimental,
         host=Host.wasm32_wasi,
         pthreads=True,
-    ),    
+    ),
     # wasm32-wasix
     BuildProfile(
         "wasix",
