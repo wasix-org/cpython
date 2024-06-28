@@ -7532,6 +7532,7 @@ AS_CASE([$ac_sys_system],
       [_testclinic],
       [fcntl],
       [mmap],
+      [_lzma],
       [xxlimited],
       [xxlimited_35],
     )
