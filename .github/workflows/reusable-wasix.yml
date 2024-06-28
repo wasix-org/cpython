@@ -48,6 +48,9 @@ jobs:
         git clone https://github.com/wasix-org/openssl ${{ env.OPENSSL_DIR }}
         cd ${{ env.OPENSSL_DIR }}
         ./wasix.sh
+        mkdir -p lib
+        cp libcrypto.a lib/libcrypto.a
+        cp libssl.a lib/libssl.a
     - name: "Compile zlib"
       run: |
         git clone https://github.com/wasix-org/zlib ${{ env.ZLIB_DIR }}
