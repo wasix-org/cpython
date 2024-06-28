@@ -308,6 +308,14 @@ jobs:
     with:
       config_hash: ${{ needs.check_source.outputs.config_hash }}
 
+  build_wasix:
+    name: 'WASIX'
+    needs: check_source
+    if: needs.check_source.outputs.run_tests == 'true'
+    uses: ./.github/workflows/reusable-wasix.yml
+    with:
+      config_hash: ${{ needs.check_source.outputs.config_hash }}
+
   test_hypothesis:
     name: "Hypothesis tests on Ubuntu"
     runs-on: ubuntu-22.04

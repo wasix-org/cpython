@@ -1,0 +1,63 @@
+on:
+  workflow_call:
+    inputs:
+      config_hash:
+        required: true
+        type: string
+
+jobs:
+  build_wasix_reusable:
+    name: 'build and test'
+    timeout-minutes: 60
+    runs-on: ubuntu-22.04
+    env:
+      WASI_SDK_VERSION: 21
+      WASI_SDK_PATH: /opt/wasi-sdk
+      WASIX_SYSROOT: /opt/wasix-libc
+      WASIX_LIBC_TAG: "v2024-06-20.1"
+      OPENSSL_DIR: "/opt/openssl"
+      ZLIB_DIR: "/opt/zlib"
+      CROSS_BUILD_PYTHON: cross-build/build
+      CROSS_BUILD_WASI: cross-build/wasix
+    steps:
+    - uses: actions/checkout@v4
+    - name: "Install Tools"
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git make curl python3 binaryen
+    - name: "Restore WASI SDK"
+      id: cache-wasi-sdk
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.WASI_SDK_PATH }}
+        key: ${{ runner.os }}-wasi-sdk-${{ env.WASI_SDK_VERSION }}
+    - name: "Install WASI SDK"
+      if: steps.cache-wasi-sdk.outputs.cache-hit != 'true'
+      run: |
+        mkdir ${{ env.WASI_SDK_PATH }} && \
+        curl -s -S --location https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${{ env.WASI_SDK_VERSION }}/wasi-sdk-${{ env.WASI_SDK_VERSION }}.0-linux.tar.gz | \
+        tar --strip-components 1 --directory ${{ env.WASI_SDK_PATH }} --extract --gunzip
+    - name: "Install wasix-libc"
+      run: |
+        curl -s -S -L https://github.com/wasix-org/wasix-libc/releases/download/${{ env.WASIX_LIBC_TAG }}/sysroot.tar.gz
+        tar --strip-components 1 --directory ${{ env.WASIX_LIBC_PATH }} --extract --gunzip
+    - name: "Compile openssl"
+      run: |
+        git clone https://github.com/wasix-org/openssl ${{ env.OPENSSL_DIR }}
+        cd openssl
+        ./wasix.sh
+    - name: "Compile zlib"
+      run: |
+        git clone https://github.com/wasix-org/zlib ${{ env.ZLIB_DIR }}
+        cd zlib
+        ./wasix.sh
+    - name: "Install Wasmer"
+      run: |
+        WASMER_DIR=/bin curl https://get.wasmer.io -sSfL | sh
+    - name: "Build Python"
+      run: |
+        WASM_RUNTIME=wasmer \
+        WASIX_ZLIB_CFLAGS="-I${{ env.ZLIB_DIR }}" \
+        WASIX_ZLIB_LIBS="-L${{ env.ZLIB_DIR }} -lz" \
+        python3 Tools/wasm/wasm_build.py wasix build
+
