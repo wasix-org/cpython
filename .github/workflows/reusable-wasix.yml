@@ -40,7 +40,7 @@ jobs:
     - name: "Install wasix-libc"
       run: |
         curl -s -S -L https://github.com/wasix-org/wasix-libc/releases/download/${{ env.WASIX_LIBC_TAG }}/sysroot.tar.gz
-        tar --strip-components 1 --directory ${{ env.WASIX_LIBC_PATH }} --extract --gunzip
+        tar --strip-components 1 --directory ${{ env.WASIX_SYSROOT }} --extract --gunzip
     - name: "Compile openssl"
       run: |
         git clone https://github.com/wasix-org/openssl ${{ env.OPENSSL_DIR }}
