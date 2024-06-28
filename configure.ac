@@ -7533,6 +7533,7 @@ AS_CASE([$ac_sys_system],
       [fcntl],
       [mmap],
       [_lzma],
+      [readline],
       [xxlimited],
       [xxlimited_35],
     )
