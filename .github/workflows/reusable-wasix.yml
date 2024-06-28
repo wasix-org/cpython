@@ -39,7 +39,7 @@ jobs:
         tar --strip-components 1 --directory ${{ env.WASI_SDK_PATH }} --extract --gunzip
     - name: "Install wasix-libc"
       run: |
-        curl -s -S -L https://github.com/wasix-org/wasix-libc/releases/download/${{ env.WASIX_LIBC_TAG }}/sysroot.tar.gz
+        curl -s -S -L https://github.com/wasix-org/wasix-libc/releases/download/${{ env.WASIX_LIBC_TAG }}/sysroot.tar.gz | \
         tar --strip-components 1 --directory ${{ env.WASIX_SYSROOT }} --extract --gunzip
     - name: "Compile openssl"
       run: |
