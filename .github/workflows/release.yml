@@ -3,13 +3,7 @@ name: Releases
 # gh-84728: "paths-ignore" is not used to skip documentation-only PRs, because
 # it prevents to mark a job as mandatory. A PR cannot be merged if a job is
 # mandatory but not scheduled because of "paths-ignore".
-on:
-  workflow_dispatch:
-  push:
-    branches:
-    - 'main'
-    - '3.*'
-  pull_request: # TODO: it should happen only on main and 3.* branches
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   publish_wasmerio:
