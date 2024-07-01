@@ -306,6 +306,7 @@ jobs:
     env:
         CROSS_BUILD_WASIX: cross-build/wasix
     steps:
+      - uses: actions/checkout@v4
       - name: "Build"
         if: needs.check_source.outputs.run_tests == 'true'
         uses: ./.github/workflows/reusable-wasix.yml
