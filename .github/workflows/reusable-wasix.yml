@@ -73,10 +73,10 @@ jobs:
         ls
     - name: "Archive the build directory"
       run: |
-        tar -czvf cross-build-wasix.tar.gz ${{ env.CROSS_BUILD_WASIX }}/*
+        tar -czvf python-wasix.tar.gz builddir/wasix/*
     - name: "Upload build files"
       uses: actions/upload-artifact@v4
       with:
-        name: cross-build-wasix
-        path: cross-build-wasix.tar.gz
+        name: python-wasix
+        path: python-wasix.tar.gz
 
