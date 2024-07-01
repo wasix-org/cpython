@@ -329,7 +329,7 @@ jobs:
         ls
     - name: "Publish to wasmer.io"
       run: |
-        ./Tools/wasm/wasmer-publish.sh publish ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} 3.14-${{ github.sha }}
+        ./Tools/wasm/wasmer-publish.sh publish "${{ secrets.WASMER_CIUSER_PROD_TOKEN }}" amin "3.14-${{ github.sha }}"
 
   # test_hypothesis:
   #   name: "Hypothesis tests on Ubuntu"
