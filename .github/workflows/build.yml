@@ -323,13 +323,16 @@ jobs:
     - name: "Unpack build files"
       run: |
         tar -xzvf python-wasix.tar.gz
+    - name: "List dirs"
+      run: |
+        ls
     - name: "Install python"
       run: |
-        cd python-wasix
+        cd builddir
         make install
     - name: "Publish to wasmer.io"
       run: |
-        cp python-wasix/python.wasm ${{ env.WASIX_INSTALL }}/python.wasm
+        cp builddir/python.wasm ${{ env.WASIX_INSTALL }}/python.wasm
         ./Tools/wasm/wasmer-publish.sh publish ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} 3.14-wasix-alpha0
 
   # test_hypothesis:
