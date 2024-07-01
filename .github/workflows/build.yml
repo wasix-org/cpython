@@ -312,28 +312,25 @@ jobs:
     needs: build_wasix
     env:
       CROSS_BUILD_WASIX: cross-build/wasix
-      WASIX_INSTALL: /opt/wasix_install
+      WASMER_PACKAGE: wasmer_package
     name: 'Publish to Wasmer'
     steps:
     - uses: actions/checkout@v4
     - name: "Download build files"
       uses: actions/download-artifact@v4
       with:
-        name: python-wasix
-    - name: "Unpack build files"
+        name: wasmer-package
+    - name: "Unpack package files"
       run: |
-        tar -xzvf python-wasix.tar.gz
+        mkdir ${{ env.WASMER_PACKAGE }}
+        tar -xzvf wasmer-package.tar.gz -C ${{ env.WASMER_PACKAGE }}
     - name: "List dirs"
       run: |
         ls
-    - name: "Install python"
-      run: |
-        cd builddir/wasix
-        make install
     - name: "Publish to wasmer.io"
       run: |
         cp builddir/wasix/python.wasm ${{ env.WASIX_INSTALL }}/python.wasm
-        ./Tools/wasm/wasmer-publish.sh publish ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} 3.14-wasix-alpha0
+        ./Tools/wasm/wasmer-publish.sh publish ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} 3.14-${{ github.sha }}
 
   # test_hypothesis:
   #   name: "Hypothesis tests on Ubuntu"

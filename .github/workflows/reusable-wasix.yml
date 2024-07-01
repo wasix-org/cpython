@@ -71,12 +71,19 @@ jobs:
     - name: "List dirs"
       run: |
         ls
+    - name: "Install CPython"
+      run: |
+        cd builddir/wasix
+        make install
+    - name: "Copy python executable"
+      run: |
+        cp -v builddir/wasix/python.wasm ${{ env.WASIX_INSTALL }}
     - name: "Archive the build directory"
       run: |
-        tar -czvf python-wasix.tar.gz builddir/*
+        tar -czvf wasmer-package.tar.gz -C ${{ env.WASIX_INSTALL }} .
     - name: "Upload build files"
       uses: actions/upload-artifact@v4
       with:
-        name: python-wasix
-        path: python-wasix.tar.gz
+        name: wasmer-package
+        path: wasmer-package.tar.gz
 
