@@ -85,4 +85,4 @@ export LIBS="\
 -Wl,--export=__tls_base \
 -lwasi-emulated-mman" 
 
-"$@" --with-openssl=$OPENSSL_DIR --prefix=/cpython
+"$@" --with-openssl=$OPENSSL_DIR --prefix=$WASIX_INSTALL
