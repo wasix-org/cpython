@@ -307,6 +307,22 @@ jobs:
     with:
       config_hash: ${{ needs.check_source.outputs.config_hash }}
 
+  publish_wasmerio:
+    runs-on: ubuntu-22.04
+    needs: build_wasix
+    env:
+      CROSS_BUILD_WASIX: cross-build/wasix
+      WASIX_INSTALL: /opt/cpython
+    name: 'Publish to Wasmer'
+    steps:
+    - name: "make install"
+      run: |
+        cd $CROSS_BUILD_WASIX
+        make install
+    - name: "Publish to wasmer.io"
+      run: |
+        ./Tools/wasm/wasmer-publish.sh ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} ${{ secrets.WASMER_CIUSER_PROD_TOKEN }}
+
   # test_hypothesis:
   #   name: "Hypothesis tests on Ubuntu"
   #   runs-on: ubuntu-22.04
