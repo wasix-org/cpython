@@ -73,7 +73,7 @@ jobs:
         ls
     - name: "Archive the build directory"
       run: |
-        tar -czvf python-wasix.tar.gz builddir/wasix/*
+        tar -czvf python-wasix.tar.gz builddir/*
     - name: "Upload build files"
       uses: actions/upload-artifact@v4
       with:

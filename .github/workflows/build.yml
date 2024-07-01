@@ -332,7 +332,7 @@ jobs:
         make install
     - name: "Publish to wasmer.io"
       run: |
-        cp builddir/python.wasm ${{ env.WASIX_INSTALL }}/python.wasm
+        cp builddir/wasix/python.wasm ${{ env.WASIX_INSTALL }}/python.wasm
         ./Tools/wasm/wasmer-publish.sh publish ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} 3.14-wasix-alpha0
 
   # test_hypothesis:
