@@ -328,7 +328,7 @@ jobs:
         ls
     - name: "Install python"
       run: |
-        cd builddir
+        cd builddir/wasix
         make install
     - name: "Publish to wasmer.io"
       run: |
