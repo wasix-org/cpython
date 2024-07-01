@@ -300,23 +300,12 @@ jobs:
   #     config_hash: ${{ needs.check_source.outputs.config_hash }}
 
   build_wasix:
-    runs-on: ubuntu-22.04
     name: 'WASIX'
     needs: check_source
-    env:
-        CROSS_BUILD_WASIX: cross-build/wasix
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        if: needs.check_source.outputs.run_tests == 'true'
-        uses: ./.github/workflows/reusable-wasix.yml
-        with:
-          config_hash: ${{ needs.check_source.outputs.config_hash }}
-      - name: "Upload python.wasm"
-        uses: actions/upload-artifact@v3
-        with:
-          name: python-wasix
-          path: ${{ env.CROSS_BUILD_WASIX }}/python.wasm
+    if: needs.check_source.outputs.run_tests == 'true'
+    uses: ./.github/workflows/reusable-wasix.yml
+    with:
+      config_hash: ${{ needs.check_source.outputs.config_hash }}
   
   publish_wasmerio:
     runs-on: ubuntu-22.04

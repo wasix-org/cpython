@@ -68,4 +68,15 @@ jobs:
         WASIX_ZLIB_CFLAGS="-I${{ env.ZLIB_DIR }}" \
         WASIX_ZLIB_LIBS="-L${{ env.ZLIB_DIR }} -lz" \
         python3 Tools/wasm/wasm_build.py wasix build
+    - name: "List dirs"
+      run: |
+        ls
+    - name: "Archive the build directory"
+      run: |
+        tar -czvf cross-build-wasix.tar.gz ${{ env.CROSS_BUILD_WASIX }}/*
+    - name: "Upload build files"
+      uses: actions/upload-artifact@v4
+      with:
+        name: cross-build-wasix
+        path: cross-build-wasix.tar.gz
 
