@@ -12,9 +12,9 @@ populate_wasmer_toml() {
     else
         PACKAGE="
         [package]                                   \n
-        name = "python/python"                      \n
-        version = $1                                \n
-        description = "CPython compiled to wasix"   \n
+        name = \"python/python\"                      \n
+        version = \"$1\"                                \n
+        description = \"CPython compiled to wasix\"   \n
         "
     fi
 
@@ -22,25 +22,25 @@ populate_wasmer_toml() {
     $PACKAGE                                        \n
 
     [[module]]                                      \n
-    name = "python"                                 \n
-    source = "python.wasm"                          \n
-    abi = "wasi"
+    name = \"python\"                                 \n
+    source = \"python.wasm\"                          \n
+    abi = \"wasi\"                                  \n
 
     [module.interfaces]                             \n
-    wasi = "0.1.0-unstable"                         \n
+    wasi = \"0.1.0-unstable\"                         \n
 
     [[command]]                                     \n
-    name = "python"                                 \n
-    module = "python"                               \n
+    name = \"python\"                                 \n
+    module = \"python\"                               \n
 
-    [[env]]
-    "PYTHONHOME"="/cpython"                         \n
+    [env]                                             \n
+    \"PYTHONHOME\"=\"/cpython\"                         \n
 
-    [fs]
-    "/cpython"="$WASIX_INSTALL/cpython"
+    [fs]                                               \n
+    \"/cpython\"=\"$WASIX_INSTALL/cpython\"             \n
     "
 
-    echo $TOML > $WASIX_INSTALL/wasmer.toml
+    echo -e $TOML > $WASIX_INSTALL/wasmer.toml
 }
 
 if test -z "$2"; then
@@ -59,7 +59,7 @@ if [ "$1" == "push" ]; then
     # populate wasmer.toml
     populate_wasmer_toml
 
-    wasmer package push --registry "wasmer.io" --token $TOKEN --owner $OWNER .
+    wasmer package push --registry "wasmer.io" --token $TOKEN $WASIX_INSTALL
 elif [ "$1" == "publish" ]; then
     if test -z "$4"; then
       echo "Version is not specified"

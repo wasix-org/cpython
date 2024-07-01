@@ -317,11 +317,12 @@ jobs:
     steps:
     - name: "make install"
       run: |
-        cd $CROSS_BUILD_WASIX
+        cd ${{ env.CROSS_BUILD_WASIX }}
         make install
     - name: "Publish to wasmer.io"
       run: |
-        ./Tools/wasm/wasmer-publish.sh ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} ${{ secrets.WASMER_CIUSER_PROD_TOKEN }}
+        cp ${{ env.CROSS_BUILD_WASIX }}/wasix/python.wasm ${{ env.CROSS_BUILD_WASIX }}/python.wasm
+        ./Tools/wasm/wasmer-publish.sh push ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} ${{ secrets.WASMER_CIUSER_PROD_TOKEN }}
 
   # test_hypothesis:
   #   name: "Hypothesis tests on Ubuntu"
