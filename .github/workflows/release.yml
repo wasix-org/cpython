@@ -1,0 +1,29 @@
+name: Releases
+
+# gh-84728: "paths-ignore" is not used to skip documentation-only PRs, because
+# it prevents to mark a job as mandatory. A PR cannot be merged if a job is
+# mandatory but not scheduled because of "paths-ignore".
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - 'main'
+    - '3.*'
+  pull_request: # TODO: it should happen only on main and 3.* branches
+
+jobs:
+  publish_wasmerio:
+    runs-on: ubuntu-22.04
+    needs: build_wasix
+    env:
+      CROSS_BUILD_WASIX: cross-build/wasix
+      WASIX_INSTALL: /opt/cpython
+    name: 'Publish to Wasmer'
+    steps:
+    - name: "make install"
+      run: |
+        cd $CROSS_BUILD_WASIX
+        make install
+    - name: "Publish to wasmer.io"
+      run: |
+        ./Tools/wasm/wasmer-publish.sh ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} ${{ secrets.WASMER_CIUSER_PROD_TOKEN }}

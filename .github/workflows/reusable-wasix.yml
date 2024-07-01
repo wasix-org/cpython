@@ -19,7 +19,8 @@ jobs:
       OPENSSL_DIR: "/opt/openssl"
       ZLIB_DIR: "/opt/zlib"
       CROSS_BUILD_PYTHON: cross-build/build
-      CROSS_BUILD_WASI: cross-build/wasix
+      CROSS_BUILD_WASIX: cross-build/wasix
+      WASIX_INSTALL: /opt/cpython
     steps:
     - uses: actions/checkout@v4
     - name: "Install Tools"
