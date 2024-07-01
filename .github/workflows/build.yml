@@ -312,7 +312,7 @@ jobs:
     needs: build_wasix
     env:
       CROSS_BUILD_WASIX: cross-build/wasix
-      WASIX_INSTALL: /opt/cpython
+      WASIX_INSTALL: /opt/wasix_install
     name: 'Publish to Wasmer'
     steps:
     - name: "make install"

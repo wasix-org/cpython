@@ -20,7 +20,7 @@ jobs:
       ZLIB_DIR: "/opt/zlib"
       CROSS_BUILD_PYTHON: cross-build/build
       CROSS_BUILD_WASIX: cross-build/wasix
-      WASIX_INSTALL: /opt/cpython
+      WASIX_INSTALL: /opt/wasix_install
     steps:
     - uses: actions/checkout@v4
     - name: "Install Tools"
