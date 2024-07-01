@@ -300,13 +300,23 @@ jobs:
   #     config_hash: ${{ needs.check_source.outputs.config_hash }}
 
   build_wasix:
+    runs-on: ubuntu-22.04
     name: 'WASIX'
     needs: check_source
-    if: needs.check_source.outputs.run_tests == 'true'
-    uses: ./.github/workflows/reusable-wasix.yml
-    with:
-      config_hash: ${{ needs.check_source.outputs.config_hash }}
-
+    env:
+        CROSS_BUILD_WASIX: cross-build/wasix
+    steps:
+      - name: "Build"
+        if: needs.check_source.outputs.run_tests == 'true'
+        uses: ./.github/workflows/reusable-wasix.yml
+        with:
+          config_hash: ${{ needs.check_source.outputs.config_hash }}
+      - name: "Upload python.wasm"
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-wasix
+          path: ${{ env.CROSS_BUILD_WASIX }}/python.wasm
+  
   publish_wasmerio:
     runs-on: ubuntu-22.04
     needs: build_wasix
@@ -319,9 +329,14 @@ jobs:
       run: |
         cd ${{ env.CROSS_BUILD_WASIX }}
         make install
+    - name: "Download python.wasm"
+      uses: actions/download-artifact@v3
+      with:
+        name: python-wasix
     - name: "Publish to wasmer.io"
       run: |
-        cp ${{ env.CROSS_BUILD_WASIX }}/wasix/python.wasm ${{ env.CROSS_BUILD_WASIX }}/python.wasm
+        ls
+        cp python.wasm ${{ env.CROSS_BUILD_WASIX }}/python.wasm
         ./Tools/wasm/wasmer-publish.sh push ${{ secrets.WASMER_CIUSER_PROD_TOKEN }} ${{ secrets.WASMER_CIUSER_PROD_TOKEN }}
 
   # test_hypothesis:
