@@ -27,7 +27,7 @@ jobs:
     - name: "Install Tools"
       run: |
         sudo apt-get update
-        sudo apt-get install -y git make curl python3 binaryen
+        sudo apt-get install -y git make curl python3 binaryen autopoint
     - name: "Restore WASI SDK"
       id: cache-wasi-sdk
       uses: actions/cache@v4
