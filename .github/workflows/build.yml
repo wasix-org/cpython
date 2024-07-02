@@ -336,7 +336,7 @@ jobs:
       run: |
         cd ${{ env.WASMER_PACKAGE }}
         PATH="$PATH:${{ env.WASMER_DIR }}/bin" \
-        ./Tools/wasm/wasmer-publish.sh push "${{ secrets.WASMER_CIUSER_PROD_TOKEN }}"
+        ../Tools/wasm/wasmer-publish.sh push "${{ secrets.WASMER_CIUSER_PROD_TOKEN }}"
 
   # test_hypothesis:
   #   name: "Hypothesis tests on Ubuntu"
