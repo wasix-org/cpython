@@ -327,7 +327,7 @@ jobs:
         tar -xzvf wasmer-package.tar.gz -C ${{ env.WASMER_PACKAGE }}
     - name: "List dirs"
       run: |
-        ls
+        ls wasmer_package
     - name: "Install Wasmer"
       run: |
         mkdir ${{ env.WASMER_DIR }}
