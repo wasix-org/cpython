@@ -18,6 +18,7 @@ jobs:
       WASIX_LIBC_TAG: "v2024-06-20.1"
       OPENSSL_DIR: "/opt/openssl"
       ZLIB_DIR: "/opt/zlib"
+      LIBLZMA_DIR: "/opt/liblzma"
       CROSS_BUILD_PYTHON: cross-build/build
       CROSS_BUILD_WASIX: cross-build/wasix
       WASIX_INSTALL: /opt/wasix_install
@@ -57,6 +58,12 @@ jobs:
         git clone https://github.com/wasix-org/zlib ${{ env.ZLIB_DIR }}
         cd ${{ env.ZLIB_DIR }}
         ./wasix.sh
+    - name: "Compile liblzma"
+      run: |
+        git clone https://github.com/wasix-org/liblzma ${{ env.LIBLZMA_DIR }}
+        cd ${{ env.LIBLZMA_DIR }}
+        ./wasix.sh
+        cp src/liblzma/.libs/liblzma.a liblzma.a
     - name: "Install Wasmer"
       run: |
         mkdir ${{ env.WASMER_DIR }}
@@ -67,6 +74,8 @@ jobs:
         WASM_RUNTIME=wasmer \
         WASIX_ZLIB_CFLAGS="-I${{ env.ZLIB_DIR }}" \
         WASIX_ZLIB_LIBS="-L${{ env.ZLIB_DIR }} -lz" \
+        WASIX_LIBLZMA_CFLAGS="-I${{ env.LIBLZMA_DIR }}/src/liblzma/api" \
+        WASIX_LIBLZMA_LIBS="-L${{ env.LIBLZMA_DIR }} -llzma" \
         python3 Tools/wasm/wasm_build.py wasix build
     - name: "List dirs"
       run: |

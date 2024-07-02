@@ -1933,6 +1933,9 @@
 #undef _WASI_EMULATED_GETPID
 
 /* Define to 1 if you want to emulate process clocks on WASI */
+#undef _WASI_EMULATED_MMAN
+
+/* Define to 1 if you want to emulate process clocks on WASI */
 #undef _WASI_EMULATED_PROCESS_CLOCKS
 
 /* Define to 1 if you want to emulate signals on WASI */

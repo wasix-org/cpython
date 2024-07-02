@@ -44,6 +44,9 @@ if ! test -x "${WASI_SDK_PATH}/bin/clang"; then
     exit 2
 fi
 
+export LIBLZMA_CFLAGS=$WASIX_LIBLZMA_CFLAGS
+export LIBLZMA_LIBS=$WASIX_LIBLZMA_LIBS
+
 export ZLIB_CFLAGS=$WASIX_ZLIB_CFLAGS
 export ZLIB_LIBS=$WASIX_ZLIB_LIBS
 
