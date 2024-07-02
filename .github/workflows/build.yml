@@ -334,6 +334,7 @@ jobs:
         curl https://get.wasmer.io -sSfL | sh
     - name: "Publish to wasmer.io"
       run: |
+        cd ${{ env.WASMER_PACKAGE }}
         PATH="$PATH:${{ env.WASMER_DIR }}/bin" \
         ./Tools/wasm/wasmer-publish.sh push "${{ secrets.WASMER_CIUSER_PROD_TOKEN }}"
 

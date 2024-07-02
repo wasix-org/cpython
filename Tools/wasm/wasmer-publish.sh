@@ -37,10 +37,10 @@ populate_wasmer_toml() {
     \"PYTHONHOME\"=\"/cpython\"                         \n
 
     [fs]                                               \n
-    \"/cpython\"=\"$WASMER_PACKAGE/cpython\"             \n
+    \"/cpython\"=\"cpython\"             \n
     "
 
-    echo -e $TOML > $WASMER_PACKAGE/wasmer.toml
+    echo -e $TOML > wasmer.toml
 }
 
 if test -z "$2"; then
@@ -53,7 +53,7 @@ if [ "$1" == "push" ]; then
     # populate wasmer.toml
     populate_wasmer_toml
 
-    wasmer package push --registry "wasmer.io" --token $TOKEN $WASMER_PACKAGE
+    wasmer package push --registry "wasmer.io" --token $TOKEN .
 elif [ "$1" == "publish" ]; then
     if test -z "$3"; then
       echo "Version is not specified"
@@ -64,5 +64,5 @@ elif [ "$1" == "publish" ]; then
     # populate wasmer.toml
     populate_wasmer_toml $VERSION
 
-    wasmer package publish --registry "wasmer.io" --token $TOKEN --non-interactive $WASMER_PACKAGE
+    wasmer package publish --registry "wasmer.io" --token $TOKEN --non-interactive .
 fi
