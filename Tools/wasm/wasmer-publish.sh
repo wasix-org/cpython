@@ -49,19 +49,13 @@ if test -z "$2"; then
 fi
 TOKEN=$2
 
-if test -z "$3"; then
-  echo "Owner is not specified"
-  exit 1
-fi
-OWNER=$3
-
 if [ "$1" == "push" ]; then
     # populate wasmer.toml
     populate_wasmer_toml
 
     wasmer package push --registry "wasmer.io" --token $TOKEN $WASMER_PACKAGE
 elif [ "$1" == "publish" ]; then
-    if test -z "$4"; then
+    if test -z "$3"; then
       echo "Version is not specified"
       exit 1
     fi
@@ -70,5 +64,5 @@ elif [ "$1" == "publish" ]; then
     # populate wasmer.toml
     populate_wasmer_toml $VERSION
 
-    wasmer package publish --registry "wasmer.io" --token $TOKEN --owner $OWNER $WASMER_PACKAGE
+    wasmer package publish --registry "wasmer.io" --token $TOKEN --non-interactive $WASMER_PACKAGE
 fi

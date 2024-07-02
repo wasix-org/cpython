@@ -313,6 +313,7 @@ jobs:
     env:
       CROSS_BUILD_WASIX: cross-build/wasix
       WASMER_PACKAGE: wasmer_package
+      WASMER_DIR: "/opt/wasmer"
     name: 'Publish to Wasmer'
     steps:
     - uses: actions/checkout@v4
@@ -327,9 +328,14 @@ jobs:
     - name: "List dirs"
       run: |
         ls
+    - name: "Install Wasmer"
+      run: |
+        mkdir ${{ env.WASMER_DIR }}
+        curl https://get.wasmer.io -sSfL | sh
     - name: "Publish to wasmer.io"
       run: |
-        ./Tools/wasm/wasmer-publish.sh publish "${{ secrets.WASMER_CIUSER_PROD_TOKEN }}" amin "3.14-${{ github.sha }}"
+        PATH="$PATH:${{ env.WASMER_DIR }}/bin" \
+        ./Tools/wasm/wasmer-publish.sh publish "${{ secrets.WASMER_CIUSER_PROD_TOKEN }}" "3.14-${{ github.sha }}"
 
   # test_hypothesis:
   #   name: "Hypothesis tests on Ubuntu"
