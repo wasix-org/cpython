@@ -38,7 +38,7 @@ populate_wasmer_toml() {
     runner = \"wasi\"                                   \n
 
     [command.annotations.wasi]                          \n
-    env = ["PYTHONHOME=/cpython"]                       \n
+    env = [\"PYTHONHOME=/cpython\"]                     \n
 
     [env]                                               \n
     \"PYTHONHOME\"=\"/cpython\"                         \n
