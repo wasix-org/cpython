@@ -64,5 +64,5 @@ elif [ "$1" == "publish" ]; then
     # populate wasmer.toml
     populate_wasmer_toml $VERSION
 
-    wasmer package publish --registry "wasmer.io" --token $TOKEN --non-interactive .
+    wasmer package publish -vvv --registry "wasmer.io" --token $TOKEN --non-interactive .
 fi
