@@ -21,6 +21,9 @@ populate_wasmer_toml() {
     TOML="
     $PACKAGE                                        \n
 
+    [package]
+    private = false
+
     [[module]]                                      \n
     name = \"python\"                                 \n
     source = \"python.wasm\"                          \n
