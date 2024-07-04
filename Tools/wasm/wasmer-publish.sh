@@ -19,28 +19,32 @@ populate_wasmer_toml() {
     fi
 
     TOML="
-    $PACKAGE                                        \n
+    $PACKAGE                                            \n
 
-    [package]                                       \n
-    private = false                                 \n
+    [package]                                           \n
+    private = false                                     \n
 
-    [[module]]                                      \n
-    name = \"python\"                                 \n
-    source = \"python.wasm\"                          \n
-    abi = \"wasi\"                                  \n
+    [[module]]                                          \n
+    name = \"python\"                                   \n
+    source = \"python.wasm\"                            \n
+    abi = \"wasi\"                                      \n
 
-    [module.interfaces]                             \n
-    wasi = \"0.1.0-unstable\"                         \n
+    [module.interfaces]                                 \n
+    wasi = \"0.1.0-unstable\"                           \n
 
-    [[command]]                                     \n
-    name = \"python\"                                 \n
-    module = \"python\"                               \n
+    [[command]]                                         \n
+    name = \"python\"                                   \n
+    module = \"python\"                                 \n
+    runner = \"wasi\"                                   \n
 
-    [env]                                             \n
+    [command.annotations.wasi]                          \n
+    env = ["PYTHONHOME=/cpython"]                       \n
+
+    [env]                                               \n
     \"PYTHONHOME\"=\"/cpython\"                         \n
 
-    [fs]                                               \n
-    \"/cpython\"=\"cpython\"             \n
+    [fs]                                                \n
+    \"/cpython\"=\"cpython\"                            \n
     "
 
     echo -e $TOML > wasmer.toml
