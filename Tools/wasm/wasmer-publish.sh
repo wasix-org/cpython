@@ -53,7 +53,7 @@ if [ "$1" == "push" ]; then
     # populate wasmer.toml
     populate_wasmer_toml
 
-    wasmer package push --registry "wasmer.io" --token $TOKEN --namespace python --name python .
+    wasmer package push -vvv --registry "wasmer.io" --token $TOKEN --namespace python --name python .
 elif [ "$1" == "publish" ]; then
     if test -z "$3"; then
       echo "Version is not specified"
