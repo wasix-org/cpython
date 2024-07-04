@@ -21,8 +21,8 @@ populate_wasmer_toml() {
     TOML="
     $PACKAGE                                        \n
 
-    [package]
-    private = false
+    [package]                                       \n
+    private = false                                 \n
 
     [[module]]                                      \n
     name = \"python\"                                 \n
