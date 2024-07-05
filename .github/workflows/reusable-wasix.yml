@@ -19,6 +19,7 @@ jobs:
       OPENSSL_DIR: "/opt/openssl"
       ZLIB_DIR: "/opt/zlib"
       LIBLZMA_DIR: "/opt/liblzma"
+      UTIL_LINUX_DIR: "/opt/util-linux"
       CROSS_BUILD_PYTHON: cross-build/build
       CROSS_BUILD_WASIX: cross-build/wasix
       WASIX_INSTALL: /opt/wasix_install
@@ -64,6 +65,12 @@ jobs:
         cd ${{ env.LIBLZMA_DIR }}
         ./wasix.sh
         cp src/liblzma/.libs/liblzma.a liblzma.a
+    - name: "Compile libuuid"
+      run: |
+        git clone https://github.com/wasix-org/util-linux ${{ env.UTIL_LINUX_DIR }}
+        cd ${{ env.UTIL_LINUX_DIR }}
+        ./wasix.sh
+        cp -v .libs/libuuid.a .
     - name: "Install Wasmer"
       run: |
         mkdir ${{ env.WASMER_DIR }}
@@ -76,6 +83,8 @@ jobs:
         WASIX_ZLIB_LIBS="-L${{ env.ZLIB_DIR }} -lz" \
         WASIX_LIBLZMA_CFLAGS="-I${{ env.LIBLZMA_DIR }}/src/liblzma/api" \
         WASIX_LIBLZMA_LIBS="-L${{ env.LIBLZMA_DIR }} -llzma" \
+        WASIX_LIBUUID_CFLAGS="-I ${{ env.UTIL_LINUX_DIR }}/libuuid/src" \
+        WASIX_LIBUUID_LIBS="-L ${{ env.UTIL_LINUX_DIR }} -l uuid" \
         python3 Tools/wasm/wasm_build.py wasix build
     - name: "List dirs"
       run: |
