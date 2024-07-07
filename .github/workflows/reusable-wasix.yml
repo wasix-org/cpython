@@ -98,7 +98,7 @@ jobs:
         WASIX_LIBUUID_CFLAGS="-I ${{ env.UTIL_LINUX_DIR }}/libuuid/src" \
         WASIX_LIBUUID_LIBS="-L ${{ env.UTIL_LINUX_DIR }} -l uuid" \
         WASIX_LIBREADLINE_CFLAGS="-I ${{ env.READLINE_DIR }}" \
-        WASIX_LIBREADLINE_LIBS="-L ${{ env.READLINE_DIR }} -L ${{ env.NCURSES_DIR }}/lib -lreadline -lncurses"
+        WASIX_LIBREADLINE_LIBS="-L ${{ env.READLINE_DIR }} -L ${{ env.NCURSES_DIR }}/lib -lreadline -lncurses" \
         python3 Tools/wasm/wasm_build.py wasix build
     - name: "List dirs"
       run: |
