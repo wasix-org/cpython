@@ -21,7 +21,7 @@ jobs:
       LIBLZMA_DIR: "/opt/liblzma"
       UTIL_LINUX_DIR: "/opt/util-linux"
       NCURSES_DIR: "/opt/ncurses"
-      READLINE_DIR: "/opt/readline"
+      READLINE_DIR: "/opt/readline/readline"
       CROSS_BUILD_PYTHON: cross-build/build
       CROSS_BUILD_WASIX: cross-build/wasix
       WASIX_INSTALL: /opt/wasix_install
@@ -97,7 +97,7 @@ jobs:
         WASIX_LIBLZMA_LIBS="-L${{ env.LIBLZMA_DIR }} -llzma" \
         WASIX_LIBUUID_CFLAGS="-I ${{ env.UTIL_LINUX_DIR }}/libuuid/src" \
         WASIX_LIBUUID_LIBS="-L ${{ env.UTIL_LINUX_DIR }} -l uuid" \
-        WASIX_LIBREADLINE_CFLAGS="-I ${{ env.READLINE_DIR }}" \
+        WASIX_LIBREADLINE_CFLAGS="-I ${{ env.READLINE_DIR }}/.." \
         WASIX_LIBREADLINE_LIBS="-L ${{ env.READLINE_DIR }} -L ${{ env.NCURSES_DIR }}/lib -lreadline -lncurses" \
         python3 Tools/wasm/wasm_build.py wasix build
     - name: "List dirs"
