@@ -15,7 +15,7 @@ jobs:
       WASI_SDK_PATH: /opt/wasi-sdk
       WASIX_SYSROOT: /opt/wasix-libc
       WASMER_DIR: "/opt/wasmer"
-      WASIX_LIBC_TAG: "v2024-06-20.1"
+      WASIX_LIBC_TAG: "v2024-07-08.1"
       OPENSSL_DIR: "/opt/openssl"
       ZLIB_DIR: "/opt/zlib"
       LIBLZMA_DIR: "/opt/liblzma"
