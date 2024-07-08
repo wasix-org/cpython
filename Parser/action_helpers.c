@@ -1,9 +1,9 @@
 #include <Python.h>
 
 #include "pegen.h"
-#include "tokenizer.h"
 #include "string_parser.h"
 #include "pycore_runtime.h"         // _PyRuntime
+#include "pycore_pystate.h"         // _PyInterpreterState_GET()
 
 void *
 _PyPegen_dummy_name(Parser *p, ...)
@@ -119,42 +119,13 @@ expr_ty
 _PyPegen_join_names_with_dot(Parser *p, expr_ty first_name, expr_ty second_name)
 {
     assert(first_name != NULL && second_name != NULL);
-    PyObject *first_identifier = first_name->v.Name.id;
-    PyObject *second_identifier = second_name->v.Name.id;
-
-    const char *first_str = PyUnicode_AsUTF8(first_identifier);
-    if (!first_str) {
-        return NULL;
-    }
-    const char *second_str = PyUnicode_AsUTF8(second_identifier);
-    if (!second_str) {
-        return NULL;
-    }
-    Py_ssize_t len = strlen(first_str) + strlen(second_str) + 1;  // +1 for the dot
-
-    PyObject *str = PyBytes_FromStringAndSize(NULL, len);
-    if (!str) {
-        return NULL;
-    }
-
-    char *s = PyBytes_AS_STRING(str);
-    if (!s) {
-        return NULL;
-    }
-
-    strcpy(s, first_str);
-    s += strlen(first_str);
-    *s++ = '.';
-    strcpy(s, second_str);
-    s += strlen(second_str);
-    *s = '\0';
-
-    PyObject *uni = PyUnicode_DecodeUTF8(PyBytes_AS_STRING(str), PyBytes_GET_SIZE(str), NULL);
-    Py_DECREF(str);
+    PyObject *uni = PyUnicode_FromFormat("%U.%U",
+            first_name->v.Name.id, second_name->v.Name.id);
     if (!uni) {
         return NULL;
     }
-    PyUnicode_InternInPlace(&uni);
+    PyInterpreterState *interp = _PyInterpreterState_GET();
+    _PyUnicode_InternImmortal(interp, &uni);
     if (_PyArena_AddPyObject(p->arena, uni) < 0) {
         Py_DECREF(uni);
         return NULL;
@@ -574,22 +545,30 @@ _make_posargs(Parser *p,
               asdl_arg_seq *plain_names,
               asdl_seq *names_with_default,
               asdl_arg_seq **posargs) {
-    if (plain_names != NULL && names_with_default != NULL) {
-        asdl_arg_seq *names_with_default_names = _get_names(p, names_with_default);
-        if (!names_with_default_names) {
-            return -1;
+
+    if (names_with_default != NULL) {
+        if (plain_names != NULL) {
+            asdl_arg_seq *names_with_default_names = _get_names(p, names_with_default);
+            if (!names_with_default_names) {
+                return -1;
+            }
+            *posargs = (asdl_arg_seq*)_PyPegen_join_sequences(
+                    p,(asdl_seq*)plain_names, (asdl_seq*)names_with_default_names);
         }
-        *posargs = (asdl_arg_seq*)_PyPegen_join_sequences(
-                p,(asdl_seq*)plain_names, (asdl_seq*)names_with_default_names);
-    }
-    else if (plain_names == NULL && names_with_default != NULL) {
-        *posargs = _get_names(p, names_with_default);
-    }
-    else if (plain_names != NULL && names_with_default == NULL) {
-        *posargs = plain_names;
+        else {
+            *posargs = _get_names(p, names_with_default);
+        }
     }
     else {
-        *posargs = _Py_asdl_arg_seq_new(0, p->arena);
+        if (plain_names != NULL) {
+            // With the current grammar, we never get here.
+            // If that has changed, remove the assert, and test thoroughly.
+            assert(0);
+            *posargs = plain_names;
+        }
+        else {
+            *posargs = _Py_asdl_arg_seq_new(0, p->arena);
+        }
     }
     return *posargs == NULL ? -1 : 0;
 }
@@ -885,7 +864,7 @@ _PyPegen_make_module(Parser *p, asdl_stmt_seq *a) {
         if (type_ignores == NULL) {
             return NULL;
         }
-        for (int i = 0; i < num; i++) {
+        for (Py_ssize_t i = 0; i < num; i++) {
             PyObject *tag = _PyPegen_new_type_comment(p, p->type_ignore_comments.items[i].comment);
             if (tag == NULL) {
                 return NULL;
@@ -998,18 +977,38 @@ _PyPegen_setup_full_format_spec(Parser *p, Token *colon, asdl_expr_seq *spec, in
         return NULL;
     }
 
-    // This is needed to keep compatibility with 3.11, where an empty format spec is parsed
-    // as an *empty* JoinedStr node, instead of having an empty constant in it.
-    if (asdl_seq_LEN(spec) == 1) {
-        expr_ty e = asdl_seq_GET(spec, 0);
-        if (e->kind == Constant_kind
-                && PyUnicode_Check(e->v.Constant.value)
-                && PyUnicode_GetLength(e->v.Constant.value) == 0) {
-            spec = _Py_asdl_expr_seq_new(0, arena);
-        }
+    // This is needed to keep compatibility with 3.11, where an empty format
+    // spec is parsed as an *empty* JoinedStr node, instead of having an empty
+    // constant in it.
+    Py_ssize_t n_items = asdl_seq_LEN(spec);
+    Py_ssize_t non_empty_count = 0;
+    for (Py_ssize_t i = 0; i < n_items; i++) {
+        expr_ty item = asdl_seq_GET(spec, i);
+        non_empty_count += !(item->kind == Constant_kind &&
+                             PyUnicode_CheckExact(item->v.Constant.value) &&
+                             PyUnicode_GET_LENGTH(item->v.Constant.value) == 0);
     }
-
-    expr_ty res = _PyAST_JoinedStr(spec, lineno, col_offset, end_lineno, end_col_offset, p->arena);
+    if (non_empty_count != n_items) {
+        asdl_expr_seq *resized_spec =
+            _Py_asdl_expr_seq_new(non_empty_count, p->arena);
+        if (resized_spec == NULL) {
+            return NULL;
+        }
+        Py_ssize_t j = 0;
+        for (Py_ssize_t i = 0; i < n_items; i++) {
+            expr_ty item = asdl_seq_GET(spec, i);
+            if (item->kind == Constant_kind &&
+                PyUnicode_CheckExact(item->v.Constant.value) &&
+                PyUnicode_GET_LENGTH(item->v.Constant.value) == 0) {
+                continue;
+            }
+            asdl_seq_SET(resized_spec, j++, item);
+        }
+        assert(j == non_empty_count);
+        spec = resized_spec;
+    }
+    expr_ty res = _PyAST_JoinedStr(spec, lineno, col_offset, end_lineno,
+                                   end_col_offset, p->arena);
     if (!res) {
         return NULL;
     }

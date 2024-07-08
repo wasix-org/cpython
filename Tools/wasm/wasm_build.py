@@ -4,15 +4,16 @@
   $ ./Tools/wasm/wasm_builder.py emscripten-browser build repl
   $ ./Tools/wasm/wasm_builder.py emscripten-node-dl build test
   $ ./Tools/wasm/wasm_builder.py wasi build test
+  $ ./Tools/wasm/wasm_builder.py wasix build test
 
 Primary build targets are "emscripten-node-dl" (NodeJS, dynamic linking),
-"emscripten-browser", and "wasi".
+"emscripten-browser", "wasi", and "wasix".
 
 Emscripten builds require a recent Emscripten SDK. The tools looks for an
 activated EMSDK environment (". /path/to/emsdk_env.sh"). System packages
 (Debian, Homebrew) are not supported.
 
-WASI builds require WASI SDK and wasmtime. The tool looks for 'WASI_SDK_PATH'
+WASI and WASIX builds require WASI SDK and wasmtime. The tool looks for 'WASI_SDK_PATH'
 and falls back to /opt/wasi-sdk.
 
 The 'build' Python interpreter must be rebuilt every time Python's byte code
@@ -65,6 +66,9 @@ HAS_CCACHE = shutil.which("ccache") is not None
 # path to WASI-SDK root
 WASI_SDK_PATH = pathlib.Path(os.environ.get("WASI_SDK_PATH", "/opt/wasi-sdk"))
 
+# options: wasmtime, wasmer
+WASM_RUNTIME = os.environ.get("WASM_RUNTIME", "wasmtime")
+
 # path to Emscripten SDK config file.
 # auto-detect's EMSDK in /opt/emsdk without ". emsdk_env.sh".
 EM_CONFIG = pathlib.Path(os.environ.setdefault("EM_CONFIG", "/opt/emsdk/.emscripten"))
@@ -116,6 +120,17 @@ wasm32-wasi tests require wasmtime on PATH. Please follow instructions at
 https://wasmtime.dev/ to install wasmtime.
 """
 
+INSTALL_WASMER = """
+wasm32-wasi tests require wasmer on PATH when wasmer is selected as the
+WASI_RUNTIME. Please follow instructions at
+https://docs.wasmer.io/ecosystem/wasmer/getting-started to install
+wasmtime.
+"""
+
+INSTALL_WASM_RUNTIME = {
+    "wasmtime": INSTALL_WASMTIME,
+    "wasmer": INSTALL_WASMER,
+}
 
 def parse_emconfig(
     emconfig: pathlib.Path = EM_CONFIG,
@@ -305,14 +320,14 @@ EMSCRIPTEN = Platform(
     check=_check_emscripten,
 )
 
-
 def _check_wasi() -> None:
     wasm_ld = WASI_SDK_PATH / "bin" / "wasm-ld"
     if not wasm_ld.exists():
         raise MissingDependency(os.fspath(wasm_ld), INSTALL_WASI_SDK)
-    wasmtime = shutil.which("wasmtime")
-    if wasmtime is None:
-        raise MissingDependency("wasmtime", INSTALL_WASMTIME)
+    runtime = shutil.which(WASM_RUNTIME)
+    if runtime is None:
+        raise MissingDependency(WASM_RUNTIME,
+                                INSTALL_WASM_RUNTIME[WASM_RUNTIME])
     _check_clean_src()
 
 
@@ -329,14 +344,36 @@ WASI = Platform(
         # workaround for https://github.com/python/cpython/issues/95952
         "HOSTRUNNER": (
             "wasmtime run "
-            "--env PYTHONPATH=/{relbuilddir}/build/lib.wasi-wasm32-{version}:/Lib "
-            "--mapdir /::{srcdir} --"
+            "--wasm max-wasm-stack=16777216 "
+            "--wasi preview2 "
+            "--dir {srcdir}::/ "
+            "--env PYTHONPATH=/{relbuilddir}/build/lib.wasi-wasm32-{version}:/Lib"
         ),
         "PATH": [WASI_SDK_PATH / "bin", os.environ["PATH"]],
     },
     check=_check_wasi,
 )
 
+WASIX = Platform(
+    "wasi",
+    pythonexe="python.wasm",
+    config_site=WASMTOOLS / "config.site-wasm32-wasix",
+    configure_wrapper=WASMTOOLS / "wasix-configure-wrapper",
+    ports=None,
+    cc=WASI_SDK_PATH / "bin" / "clang",
+    make_wrapper=WASMTOOLS / "wasix-make-wrapper",
+    environ={
+        "WASI_SDK_PATH": WASI_SDK_PATH,
+        # workaround for https://github.com/python/cpython/issues/95952
+        "HOSTRUNNER": (
+            "wasmer run "
+            "--env PYTHONPATH=/{relbuilddir}/build/lib.wasi-wasm32-{version}:/Lib "
+            "--mapdir /:{srcdir} --"
+        ),
+        "PATH": [WASI_SDK_PATH / "bin", os.environ["PATH"]],
+    },
+    check=_check_wasi,
+)
 
 class Host(enum.Enum):
     """Target host triplet"""
@@ -345,6 +382,8 @@ class Host(enum.Enum):
     wasm64_emscripten = "wasm64-unknown-emscripten"
     wasm32_wasi = "wasm32-unknown-wasi"
     wasm64_wasi = "wasm64-unknown-wasi"
+    wasm32_wasix = "wasm32-unknown-wasix"
+    wasm64_wasix = "wasm64-unknown-wasix"
     # current platform
     build = sysconfig.get_config_var("BUILD_GNU_TYPE")
 
@@ -354,6 +393,8 @@ class Host(enum.Enum):
             return EMSCRIPTEN
         elif self.is_wasi:
             return WASI
+        elif self.is_wasix:
+            return WASIX
         else:
             return NATIVE
 
@@ -366,6 +407,11 @@ class Host(enum.Enum):
     def is_wasi(self) -> bool:
         cls = type(self)
         return self in {cls.wasm32_wasi, cls.wasm64_wasi}
+
+    @property
+    def is_wasix(self) -> bool:
+        cls = type(self)
+        return self in {cls.wasm64_wasix, cls.wasm32_wasix}
 
     def get_extra_paths(self) -> Iterable[pathlib.PurePath]:
         """Host-specific os.environ["PATH"] entries.
@@ -767,6 +813,14 @@ _profiles = [
         support_level=SupportLevel.experimental,
         host=Host.wasm32_wasi,
         pthreads=True,
+    ),
+    # wasm32-wasix
+    BuildProfile(
+        "wasix",
+        support_level=SupportLevel.supported,
+        host=Host.wasm32_wasix,
+        pthreads=True,
+        dynamic_linking=None,
     ),
     # no SDK available yet
     # BuildProfile(
