@@ -13,7 +13,7 @@
    of the dynload_*.c files, as appropriate. We will call a function in
    those modules to get a function pointer to the module's init function.
 */
-#ifdef HAVE_DYNAMIC_LOADING
+#if defined(HAVE_DYNAMIC_LOADING) || defined(__wasm32)
 
 #include "pycore_importdl.h"
 

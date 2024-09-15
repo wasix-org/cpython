@@ -339,6 +339,9 @@ then
 	*-*-wasi)
 	    ac_sys_system=WASI
 	    ;;
+  *-*-wasix)
+	    ac_sys_system=WASIX
+	    ;;
 	*)
 		# for now, limit cross builds to known configurations
 		MACHDEP="unknown"
@@ -1182,6 +1185,7 @@ AS_CASE([$host/$ac_cv_cc_name],
   [aarch64-*-linux-gnu/clang],       [PY_SUPPORT_TIER=2],
   [powerpc64le-*-linux-gnu/gcc],     [PY_SUPPORT_TIER=2], dnl Linux on PPC64 little endian, glibc, gcc
   [wasm32-unknown-wasi/clang],       [PY_SUPPORT_TIER=2], dnl WebAssembly System Interface, clang
+  [wasm32-unknown-wasix/clang],      [PY_SUPPORT_TIER=3], dnl Posix superset of WASI
   [x86_64-*-linux-gnu/clang],        [PY_SUPPORT_TIER=2], dnl Linux on AMD64, any vendor, glibc, clang
 
   [aarch64-pc-windows-msvc/msvc],    [PY_SUPPORT_TIER=3], dnl Windows ARM64, MSVC
@@ -1297,8 +1301,8 @@ AC_ARG_ENABLE([wasm-dynamic-linking],
 [
   AS_CASE([$ac_sys_system],
     [Emscripten], [],
-    [WASI], [AC_MSG_ERROR([WASI dynamic linking is not implemented yet.])],
-    [AC_MSG_ERROR([--enable-wasm-dynamic-linking only applies to Emscripten and WASI])]
+    [WASI|WASIX], [AC_MSG_ERROR([WASI dynamic linking is not implemented yet.])],
+    [AC_MSG_ERROR([--enable-wasm-dynamic-linking only applies to Emscripten, WASI, and WASIX])]
   )
 ], [
   enable_wasm_dynamic_linking=missing
@@ -1312,8 +1316,8 @@ AC_ARG_ENABLE([wasm-pthreads],
 [
   AS_CASE([$ac_sys_system],
     [Emscripten], [],
-    [WASI], [],
-    [AC_MSG_ERROR([--enable-wasm-pthreads only applies to Emscripten and WASI])]
+    [WASI|WASIX], [],
+    [AC_MSG_ERROR([--enable-wasm-pthreads only applies to Emscripten, WASI, and WASIX])]
   )
 ], [
   enable_wasm_pthreads=missing
@@ -1334,6 +1338,7 @@ AC_ARG_WITH([suffix],
     [Emscripten/browser*], [EXEEXT=.js],
     [Emscripten/node*], [EXEEXT=.js],
     [WASI/*], [EXEEXT=.wasm],
+    [WASIX/*], [EXEEXT=.wasm],
     [EXEEXT=]
   )
 ])
@@ -1884,7 +1889,7 @@ if test "$Py_OPT" = 'true' ; then
       ], [], [-Werror])
       ;;
   esac
-elif test "$ac_sys_system" = "Emscripten" -o "$ac_sys_system" = "WASI"; then
+elif test "$ac_sys_system" = "Emscripten" -o "$ac_sys_system" = "WASI" -o "$ac_sys_system" = "WASIX"; then
   dnl Emscripten does not support shared extensions yet. Build
   dnl "python.[js,wasm]", "pybuilddir.txt", and "platform" files.
   DEF_MAKE_ALL_RULE="build_wasm"
@@ -2424,6 +2429,16 @@ AS_CASE([$ac_sys_system],
     ], [
       AS_VAR_APPEND([LINKFORSHARED], [" -O2 -g0"])
     ])
+  ],
+  [WASIX], [
+    AC_DEFINE([_WASI_EMULATED_SIGNAL], [1], [Define to 1 if you want to emulate signals on WASI])
+    AC_DEFINE([_WASI_EMULATED_GETPID], [1], [Define to 1 if you want to emulate getpid() on WASI])
+    AC_DEFINE([_WASI_EMULATED_PROCESS_CLOCKS], [1], [Define to 1 if you want to emulate process clocks on WASI])
+    AC_DEFINE([_WASI_EMULATED_MMAN], [1], [Define to 1 if you want to emulate process clocks on WASI])
+    LIBS="$LIBS -lwasi-emulated-getpid -lwasi-emulated-mman -lwasi-emulated-process-clocks"
+    dnl increase initial memory and stack size, move stack first
+    dnl https://github.com/WebAssembly/wasi-libc/issues/233
+    AS_VAR_APPEND([LDFLAGS_NODIST], [" -z stack-size=16777216 -Wl,--stack-first -Wl,--initial-memory=41943040"])
   ],
   [WASI], [
     AC_DEFINE([_WASI_EMULATED_SIGNAL], [1], [Define to 1 if you want to emulate signals on WASI])
@@ -3463,7 +3478,7 @@ then
 		LDCXXSHARED='$(CXX) -dynamiclib -F . -framework $(PYTHONFRAMEWORK)'
 		BLDSHARED="$LDSHARED"
 		;;
-	Emscripten*|WASI*)
+	Emscripten*|WASI*|WASIX*)
 		LDSHARED='$(CC) -shared'
 		LDCXXSHARED='$(CXX) -shared';;
 	Linux*|GNU*|QNX*|VxWorks*|Haiku*)
@@ -3548,7 +3563,7 @@ then
 		 else CCSHARED="+z";
 		 fi;;
 	Linux*|GNU*) CCSHARED="-fPIC";;
-	Emscripten*|WASI*)
+	Emscripten*|WASI*|WASIX*)
 		AS_VAR_IF([enable_wasm_dynamic_linking], [yes], [
 			CCSHARED="-fPIC"
 		]);;
@@ -4891,7 +4906,7 @@ then
   dnl default to yes except for wasm32-emscripten and wasm32-wasi.
   AS_CASE([$ac_sys_system],
     [Emscripten], [with_pymalloc="no"],
-    [WASI], [with_pymalloc="no"],
+    [WASI|WASIX], [with_pymalloc="no"],
     [with_pymalloc="yes"]
   )
 fi
@@ -7045,6 +7060,7 @@ AC_ARG_WITH([ensurepip],
       AS_CASE([$ac_sys_system],
         [Emscripten], [with_ensurepip=no],
         [WASI], [with_ensurepip=no],
+        [WASIX], [with_ensurepip=no],
         [iOS], [with_ensurepip=no],
         [with_ensurepip=upgrade]
       )
@@ -7479,6 +7495,40 @@ AS_CASE([$ac_sys_system],
   [CYGWIN*], [PY_STDLIB_MOD_SET_NA([_scproxy])],
   [QNX*], [PY_STDLIB_MOD_SET_NA([_scproxy])],
   [FreeBSD*], [PY_STDLIB_MOD_SET_NA([_scproxy])],
+  [WASIX], [
+    dnl resource functions (get/setrusage) are stubs, too.
+    PY_STDLIB_MOD_SET_NA(
+      [_dbm],
+      [_gdbm],
+      [_posixshmem],
+      [_scproxy],
+      [_tkinter],
+      [_xxsubinterpreters],
+      [_xxinterpchannels],
+      [grp],
+      [nis],
+      [ossaudiodev],
+      [pwd],
+      [resource],
+      [spwd],
+      [syslog],
+      [_ctypes_test],
+      [_ctypes],
+      [_testexternalinspection],
+      [_testimportmultiple],
+      [_testmultiphase],
+      [_testsinglephase],
+      [_testlimitedcapi],
+      [_testclinic_limited],
+      [_testbuffer],
+      [_testinternalcapi],
+      [_testcapi],
+      [_testclinic],
+      [fcntl],
+      [xxlimited],
+      [xxlimited_35],
+    )
+  ],
   [Emscripten|WASI], [
     dnl subprocess and multiprocessing are not supported (no fork syscall).
     dnl curses and tkinter user interface are not available.
