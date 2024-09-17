@@ -1,0 +1,21 @@
+[package]
+name = "wasmer/python"
+
+[fs]
+"/cpython" = "./cpython"
+
+[[module]]
+name = "python"
+source = "python.wasm"
+abi = "wasi"
+
+[module.interfaces]
+wasi = "0.1.0-unstable"
+
+[[command]]
+name = "python"
+module = "python"
+runner = "wasi"
+
+[command.annotations.wasi]
+env = ["PYTHONEXECUTABLE=/bin/python", "PYTHONHOME=/cpython"]

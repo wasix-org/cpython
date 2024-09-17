@@ -1,0 +1,120 @@
+on:
+  workflow_call:
+    inputs:
+      config_hash:
+        required: true
+        type: string
+
+jobs:
+  build_wasix_reusable:
+    name: 'build and test'
+    timeout-minutes: 60
+    runs-on: ubuntu-22.04
+    env:
+      WASI_SDK_VERSION: 21
+      WASI_SDK_PATH: /opt/wasi-sdk
+      WASIX_SYSROOT: /opt/wasix-libc
+      WASMER_DIR: "/opt/wasmer"
+      WASIX_LIBC_TAG: "v2024-07-08.1"
+      OPENSSL_DIR: "/opt/openssl"
+      ZLIB_DIR: "/opt/zlib"
+      LIBLZMA_DIR: "/opt/liblzma"
+      UTIL_LINUX_DIR: "/opt/util-linux"
+      NCURSES_DIR: "/opt/ncurses"
+      READLINE_DIR: "/opt/readline/readline"
+      CROSS_BUILD_PYTHON: cross-build/build
+      CROSS_BUILD_WASIX: cross-build/wasix
+      WASIX_INSTALL: /opt/wasix_install
+    steps:
+    - uses: actions/checkout@v4
+    - name: "Install Tools"
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git make curl python3 binaryen autopoint
+    - name: "Restore WASI SDK"
+      id: cache-wasi-sdk
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.WASI_SDK_PATH }}
+        key: ${{ runner.os }}-wasi-sdk-${{ env.WASI_SDK_VERSION }}
+    - name: "Install WASI SDK"
+      if: steps.cache-wasi-sdk.outputs.cache-hit != 'true'
+      run: |
+        mkdir ${{ env.WASI_SDK_PATH }} && \
+        curl -s -S --location https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${{ env.WASI_SDK_VERSION }}/wasi-sdk-${{ env.WASI_SDK_VERSION }}.0-linux.tar.gz | \
+        tar --strip-components 1 --directory ${{ env.WASI_SDK_PATH }} --extract --gunzip
+    - name: "Install wasix-libc"
+      run: |
+        mkdir ${{ env.WASIX_SYSROOT }}
+        curl -s -S -L https://github.com/wasix-org/wasix-libc/releases/download/${{ env.WASIX_LIBC_TAG }}/sysroot.tar.gz | \
+        tar --strip-components 1 --directory ${{ env.WASIX_SYSROOT }} --extract --gunzip
+    - name: "Compile openssl"
+      run: |
+        git clone https://github.com/wasix-org/openssl ${{ env.OPENSSL_DIR }}
+        cd ${{ env.OPENSSL_DIR }}
+        ./wasix.sh
+        mkdir -p lib
+        cp libcrypto.a lib/libcrypto.a
+        cp libssl.a lib/libssl.a
+    - name: "Compile zlib"
+      run: |
+        git clone https://github.com/wasix-org/zlib ${{ env.ZLIB_DIR }}
+        cd ${{ env.ZLIB_DIR }}
+        ./wasix.sh
+    - name: "Compile liblzma"
+      run: |
+        git clone https://github.com/wasix-org/liblzma ${{ env.LIBLZMA_DIR }}
+        cd ${{ env.LIBLZMA_DIR }}
+        ./wasix.sh
+        cp src/liblzma/.libs/liblzma.a liblzma.a
+    - name: "Compile libuuid"
+      run: |
+        git clone https://github.com/wasix-org/util-linux ${{ env.UTIL_LINUX_DIR }}
+        cd ${{ env.UTIL_LINUX_DIR }}
+        ./wasix.sh
+        cp -v .libs/libuuid.a .
+    - name: "Compile ncurses"
+      run: |
+        git clone https://github.com/wasix-org/ncurses -b wasix-support ${{ env.NCURSES_DIR }}
+        cd ${{ env.NCURSES_DIR }}
+        ./wasix.sh
+    - name: "Compile readline"
+      run: |
+        git clone https://github.com/wasix-org/readline ${{ env.READLINE_DIR }}
+        cd ${{ env.READLINE_DIR }}
+        WASIX_NCURSES=${{ env.NCURSES_DIR }} ./wasix.sh
+    - name: "Install Wasmer"
+      run: |
+        mkdir ${{ env.WASMER_DIR }}
+        curl https://get.wasmer.io -sSfL | sh
+    - name: "Build Python"
+      run: |
+        PATH="$PATH:${{ env.WASMER_DIR }}/bin"
+        WASM_RUNTIME=wasmer \
+        WASIX_ZLIB_CFLAGS="-I${{ env.ZLIB_DIR }}" \
+        WASIX_ZLIB_LIBS="-L${{ env.ZLIB_DIR }} -lz" \
+        WASIX_LIBLZMA_CFLAGS="-I${{ env.LIBLZMA_DIR }}/src/liblzma/api" \
+        WASIX_LIBLZMA_LIBS="-L${{ env.LIBLZMA_DIR }} -llzma" \
+        WASIX_LIBUUID_CFLAGS="-I ${{ env.UTIL_LINUX_DIR }}/libuuid/src" \
+        WASIX_LIBUUID_LIBS="-L ${{ env.UTIL_LINUX_DIR }} -l uuid" \
+        WASIX_LIBREADLINE_CFLAGS="-I ${{ env.READLINE_DIR }}/.." \
+        WASIX_LIBREADLINE_LIBS="-L ${{ env.READLINE_DIR }} -L ${{ env.NCURSES_DIR }}/lib -lreadline -lncurses" \
+        python3 Tools/wasm/wasm_build.py wasix build
+    - name: "List dirs"
+      run: |
+        ls
+    - name: "Install CPython"
+      run: |
+        cd builddir/wasix
+        make install
+    - name: "Copy python executable"
+      run: |
+        cp -v builddir/wasix/python.wasm ${{ env.WASIX_INSTALL }}
+    - name: "Archive the build directory"
+      run: |
+        tar -czvf wasmer-package.tar.gz -C ${{ env.WASIX_INSTALL }} .
+    - name: "Upload build files"
+      uses: actions/upload-artifact@v4
+      with:
+        name: wasmer-package
+        path: wasmer-package.tar.gz

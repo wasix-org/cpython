@@ -302,6 +302,49 @@ jobs:
     with:
       config_hash: ${{ needs.check_source.outputs.config_hash }}
 
+  build_wasix:
+    name: 'WASIX'
+    needs: check_source
+    if: needs.check_source.outputs.run_tests == 'true'
+    uses: ./.github/workflows/reusable-wasix.yml
+    with:
+      config_hash: ${{ needs.check_source.outputs.config_hash }}
+
+  publish_wasix:
+    runs-on: ubuntu-22.04
+    needs: build_wasix
+    env:
+      CROSS_BUILD_WASIX: cross-build/wasix
+      WASMER_PACKAGE: wasmer_package
+      WASMER_DIR: "/opt/wasmer"
+    name: 'Publish to Wasmer'
+    steps:
+    - uses: actions/checkout@v4
+    - name: "Download build files"
+      uses: actions/download-artifact@v4
+      with:
+        name: wasmer-package
+    - name: "Unpack package files"
+      run: |
+        mkdir ${{ env.WASMER_PACKAGE }}
+        tar -xzvf wasmer-package.tar.gz -C ${{ env.WASMER_PACKAGE }}
+    - name: "List dirs"
+      run: |
+        ls wasmer_package
+    - name: "Install Wasmer"
+      run: |
+        mkdir ${{ env.WASMER_DIR }}
+        curl https://get.wasmer.io -sSfL | sh
+    - name: "Publish to wasmer.io"
+      run: |
+        cd ${{ env.WASMER_PACKAGE }}
+        cp -v ../Tools/wasm/wasmer.toml .
+        if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+          PATH="$PATH:${{ env.WASMER_DIR }}/bin" ../Tools/wasm/wasix-publish.sh push "${{ secrets.WASMER_CIUSER_PROD_TOKEN }}"
+        elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+          PATH="$PATH:${{ env.WASMER_DIR }}/bin" ../Tools/wasm/wasix-publish.sh publish ${GITHUB_REF#refs/tags/} "${{ secrets.WASMER_CIUSER_PROD_TOKEN }}"
+        fi
+
   test_hypothesis:
     name: "Hypothesis tests on Ubuntu"
     runs-on: ubuntu-22.04
