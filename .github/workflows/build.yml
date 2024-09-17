@@ -312,6 +312,7 @@ jobs:
 
   publish_wasix:
     runs-on: ubuntu-22.04
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/3.13.x' || startsWith(github.ref, 'refs/tags/'))
     needs: build_wasix
     env:
       CROSS_BUILD_WASIX: cross-build/wasix
