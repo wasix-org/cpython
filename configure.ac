@@ -1300,8 +1300,8 @@ AC_ARG_ENABLE([wasm-dynamic-linking],
                   [Enable dynamic linking support for WebAssembly (default is no)])],
 [
   AS_CASE([$ac_sys_system],
-    [Emscripten], [],
-    [WASI|WASIX], [AC_MSG_ERROR([WASI dynamic linking is not implemented yet.])],
+    [Emscripten|WASIX], [],
+    [WASI], [AC_MSG_ERROR([WASI dynamic linking is not implemented yet.])],
     [AC_MSG_ERROR([--enable-wasm-dynamic-linking only applies to Emscripten, WASI, and WASIX])]
   )
 ], [
@@ -2439,6 +2439,10 @@ AS_CASE([$ac_sys_system],
     dnl increase initial memory and stack size, move stack first
     dnl https://github.com/WebAssembly/wasi-libc/issues/233
     AS_VAR_APPEND([LDFLAGS_NODIST], [" -z stack-size=16777216 -Wl,--stack-first -Wl,--initial-memory=41943040"])
+    AS_VAR_IF([enable_wasm_dynamic_linking], [yes], [
+      # TODO: Most of these flags can probably be removed 
+      AS_VAR_APPEND([LINKFORSHARED], [" -Wl,--experimental-pic -Wl,-pie -Wl,--import-memory -Wl,--import-memory -Wl,--shared-memory -Wl,--export-if-defined=__wasm_apply_data_relocs -Wl,--export=__wasm_call_ctors -Wl,--extra-features=atomics -Wl,--extra-features=bulk-memory -Wl,--extra-features=mutable-globals -Wl,-lc -Wl,-lresolv -Wl,-lrt -Wl,-lm -Wl,-lpthread -Wl,-lwasi-emulated-mman -Wl,--export-all"])
+    ])
   ],
   [WASI], [
     AC_DEFINE([_WASI_EMULATED_SIGNAL], [1], [Define to 1 if you want to emulate signals on WASI])
@@ -3535,7 +3539,7 @@ fi
 
 dnl Emscripten's emconfigure sets LDSHARED. Set BLDSHARED outside the
 dnl test -z $LDSHARED block to configure BLDSHARED for side module support.
-if test "$enable_wasm_dynamic_linking" = "yes" -a "$ac_sys_system" = "Emscripten"; then
+if test "$enable_wasm_dynamic_linking" = "yes"; then
   BLDSHARED='$(CC) -shared -sSIDE_MODULE=1'
 fi
 

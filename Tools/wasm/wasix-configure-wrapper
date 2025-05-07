@@ -84,8 +84,8 @@ export LIBS="\
 -Wl,--max-memory=4294967296 \
 -Wl,--import-memory \
 -Wl,--export-dynamic \
--Wl,--export=__heap_base \
--Wl,--export=__stack_pointer \
+-Wl,--export-if-defined=__heap_base \
+-Wl,--export-if-defined=__stack_pointer \
 -Wl,--export=__data_end \
 -Wl,--export=__wasm_init_tls \
 -Wl,--export=__wasm_signal \

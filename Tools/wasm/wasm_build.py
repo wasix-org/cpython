@@ -534,7 +534,7 @@ class BuildProfile:
             cmd.append(f"--with-emscripten-target={self.target.value}")
 
         if self.dynamic_linking is not None:
-            assert self.host.is_emscripten
+            assert not self.host.is_wasi
             opt = "enable" if self.dynamic_linking else "disable"
             cmd.append(f"--{opt}-wasm-dynamic-linking")
 
@@ -817,6 +817,14 @@ _profiles = [
     # wasm32-wasix
     BuildProfile(
         "wasix",
+        support_level=SupportLevel.supported,
+        host=Host.wasm32_wasix,
+        pthreads=True,
+        dynamic_linking=True,
+    ),
+    # wasm32-wasix
+    BuildProfile(
+        "wasix-no-dl",
         support_level=SupportLevel.supported,
         host=Host.wasm32_wasix,
         pthreads=True,
