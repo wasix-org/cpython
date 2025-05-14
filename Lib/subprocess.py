@@ -1787,7 +1787,14 @@ class Popen:
                     file_actions.append((os.POSIX_SPAWN_DUP2, fd, fd2))
 
             if close_fds:
-                file_actions.append((os.POSIX_SPAWN_CLOSEFROM, 3))
+                if hasattr(os, 'POSIX_SPAWN_CLOSEFROM'):
+                    file_actions.append((os.POSIX_SPAWN_CLOSEFROM, 3))
+                else:
+                    # Close all file descriptors up to 1024
+                    # TODO: This is a bit of a hack and will break if there are more than 1024 filedescriptors
+                    # The correct way to do this is to implement POSIX_SPAWN_CLOSEFROM
+                    for fd in range(3, 1024):
+                        file_actions.append((os.POSIX_SPAWN_CLOSE, fd))
 
             if file_actions:
                 kwargs['file_actions'] = file_actions
@@ -1837,7 +1844,8 @@ class Popen:
                 # TODO: Allow executing without absolute paths
                 assert os.path.dirname(executable)
                 assert preexec_fn is None
-                # TODO: Handle close_fds
+                # We can remove this check because we added a fallback in posix_spawn
+                # TODO: Add this check back, once wasix supports closefrom
                 # assert (not close_fds or _HAVE_POSIX_SPAWN_CLOSEFROM)
                 assert not pass_fds
                 assert cwd is None
