@@ -1763,7 +1763,7 @@ class Popen:
                          p2cread, p2cwrite,
                          c2pread, c2pwrite,
                          errread, errwrite):
-            """Execute program using os.posix_spawn()."""
+            """Execute program using os.posix_spawnp()."""
             kwargs = {}
             if restore_signals:
                 # See _Py_RestoreSignals() in Python/pylifecycle.c
@@ -1799,7 +1799,7 @@ class Popen:
             if file_actions:
                 kwargs['file_actions'] = file_actions
 
-            self.pid = os.posix_spawn(executable, args, env, **kwargs)
+            self.pid = os.posix_spawnp(executable, args, env, **kwargs)
             self._child_created = True
 
             self._close_pipe_fds(p2cread, p2cwrite,
@@ -1841,8 +1841,9 @@ class Popen:
             sys.audit("subprocess.Popen", executable, args, cwd, env)
 
             if (_USE_POSIX_SPAWN):
-                # TODO: Allow executing without absolute paths
-                assert os.path.dirname(executable)
+                # This check is no longer required, as we are now using posix_spawnp
+                # TODO: This is not optimal, see https://github.com/python/cpython/pull/11579#issuecomment-454962458 for an explanation
+                # assert os.path.dirname(executable)
                 assert preexec_fn is None
                 # We can remove this check because we added a fallback in posix_spawn
                 # TODO: Add this check back, once wasix supports closefrom
