@@ -4,6 +4,7 @@ set -e
 "$@"
 
 echo "Running wasm-opt..."
-wasm-opt -O4 --asyncify -g python.wasm -o python.wasm
+# TODO: We can significantly reduce the size of the wasm file by using --strip-debug instead of -g
+wasm-opt -O4 -g python.wasm -o python.wasm
 
 echo "Done"
