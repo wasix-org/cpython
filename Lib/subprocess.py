@@ -715,7 +715,7 @@ def _use_posix_spawn():
         # os.posix_spawn() is not available
         return False
 
-    if sys.platform in ('darwin', 'sunos5'):
+    if sys.platform in ('darwin', 'sunos5', 'wasix'):
         # posix_spawn() is a syscall on both macOS and Solaris,
         # and properly reports errors
         return True
@@ -1833,21 +1833,23 @@ class Popen:
 
             sys.audit("subprocess.Popen", executable, args, cwd, env)
 
-            if (_USE_POSIX_SPAWN
-                    and os.path.dirname(executable)
-                    and preexec_fn is None
-                    and (not close_fds or _HAVE_POSIX_SPAWN_CLOSEFROM)
-                    and not pass_fds
-                    and cwd is None
-                    and (p2cread == -1 or p2cread > 2)
-                    and (c2pwrite == -1 or c2pwrite > 2)
-                    and (errwrite == -1 or errwrite > 2)
-                    and not start_new_session
-                    and process_group == -1
-                    and gid is None
-                    and gids is None
-                    and uid is None
-                    and umask < 0):
+            if (_USE_POSIX_SPAWN):
+                # TODO: Allow executing without absolute paths
+                assert os.path.dirname(executable)
+                assert preexec_fn is None
+                # TODO: Handle close_fds
+                # assert (not close_fds or _HAVE_POSIX_SPAWN_CLOSEFROM)
+                assert not pass_fds
+                assert cwd is None
+                assert (p2cread == -1 or p2cread > 2)
+                assert (c2pwrite == -1 or c2pwrite > 2)
+                assert (errwrite == -1 or errwrite > 2)
+                assert not start_new_session
+                assert process_group == -1
+                assert gid is None
+                assert gids is None
+                assert uid is None
+                assert umask < 0
                 self._posix_spawn(args, executable, env, restore_signals, close_fds,
                                   p2cread, p2cwrite,
                                   c2pread, c2pwrite,
