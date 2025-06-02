@@ -1,4 +1,4 @@
-set -e
+set -ex
 
 WORKDIR=$(pwd)
 if test -z "$WASIX_SYSROOT" ; then
@@ -6,13 +6,14 @@ if test -z "$WASIX_SYSROOT" ; then
     exit 1
 fi
 
-export WASI_SDK_VERSION=21
+export WASI_SDK_VERSION=25
 
 export WASI_SDK_PATH="/tmp/wasix-libs/wasi-sdk"
-if ! test -d "$WASI_SDK_PATH/.ready" ; then
+if ! test -e "$WASI_SDK_PATH/.ready" ; then
+    rm -rf $WASI_SDK_PATH || true
     mkdir -p $WASI_SDK_PATH
     chmod -R a+rwx $(dirname $WASI_SDK_PATH)
-    curl -s -S --location https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-$WASI_SDK_VERSION/wasi-sdk-$WASI_SDK_VERSION.0-linux.tar.gz | \
+    curl -s -S --location https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-$WASI_SDK_VERSION/wasi-sdk-$WASI_SDK_VERSION.0-x86_64-linux.tar.gz | \
     tar --strip-components 1 --directory $WASI_SDK_PATH --extract --gunzip
     touch $WASI_SDK_PATH/.ready
 fi
@@ -21,7 +22,8 @@ WASMER_DIR="/tmp/wasmer"
 WASIX_LIBC_TAG="v2024-07-08.1"
 
 export OPENSSL_DIR="/tmp/wasix-libs/openssl"
-if ! test -d "$OPENSSL_DIR/.ready" ; then
+if ! test -e "$OPENSSL_DIR/.ready" ; then
+    rm -rf $OPENSSL_DIR || true
     mkdir -p $(dirname $OPENSSL_DIR)
     chmod -R a+rwx $(dirname $OPENSSL_DIR)
     git clone https://github.com/wasix-org/openssl $OPENSSL_DIR
@@ -41,7 +43,8 @@ mkdir -p $WASIX_INSTALL
 
 # zlib
 export ZLIB_DIR="/tmp/wasix-libs/zlib"
-if ! test -d "$ZLIB_DIR/.ready" ; then
+if ! test -e "$ZLIB_DIR/.ready" ; then
+    rm -rf $ZLIB_DIR || true
     mkdir -p $(dirname $ZLIB_DIR)
     chmod -R a+rwx $(dirname $ZLIB_DIR)
     git clone https://github.com/wasix-org/zlib $ZLIB_DIR
@@ -52,7 +55,8 @@ fi
 
 # liblzma
 export LIBLZMA_DIR="/tmp/wasix-libs/liblzma"
-if ! test -d "$LIBLZMA_DIR/.ready" ; then
+if ! test -e "$LIBLZMA_DIR/.ready" ; then
+    rm -rf $LIBLZMA_DIR || true
     mkdir -p $(dirname $LIBLZMA_DIR)
     chmod -R a+rwx $(dirname $LIBLZMA_DIR)
     git clone https://github.com/wasix-org/liblzma $LIBLZMA_DIR
@@ -64,7 +68,8 @@ fi
 
 
 export UTIL_LINUX_DIR="/tmp/wasix-libs/util-linux"
-if ! test -d "$UTIL_LINUX_DIR/.ready" ; then
+if ! test -e "$UTIL_LINUX_DIR/.ready" ; then
+    rm -rf $UTIL_LINUX_DIR || true
     mkdir -p $(dirname $UTIL_LINUX_DIR)
     chmod -R a+rwx $(dirname $UTIL_LINUX_DIR)
     git clone https://github.com/wasix-org/util-linux $UTIL_LINUX_DIR
@@ -75,7 +80,8 @@ if ! test -d "$UTIL_LINUX_DIR/.ready" ; then
 fi
 
 export NCURSES_DIR="/tmp/wasix-libs/ncurses"
-if ! test -d "$NCURSES_DIR/.ready" ; then
+if ! test -e "$NCURSES_DIR/.ready" ; then
+    rm -rf $NCURSES_DIR || true
     mkdir -p $(dirname $NCURSES_DIR)
     chmod -R a+rwx $(dirname $NCURSES_DIR)
     git clone https://github.com/wasix-org/ncurses -b wasix-support $NCURSES_DIR
@@ -85,7 +91,8 @@ if ! test -d "$NCURSES_DIR/.ready" ; then
 fi
 
 export READLINE_DIR="/tmp/wasix-libs/readline/readline"
-if ! test -d "$READLINE_DIR/.ready" ; then
+if ! test -e "$READLINE_DIR/.ready" ; then
+    rm -rf $READLINE_DIR || true
     mkdir -p $(dirname $READLINE_DIR)
     chmod -R a+rwx $(dirname $READLINE_DIR)
     git clone https://github.com/wasix-org/readline $READLINE_DIR
