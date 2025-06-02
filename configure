@@ -9613,8 +9613,10 @@ printf "%s\n" "#define _WASI_EMULATED_MMAN 1" >>confdefs.h
     if test "x$enable_wasm_dynamic_linking" = xyes
 then :
 
-      # TODO: Most of these flags can probably be removed
-      as_fn_append LINKFORSHARED " -Wl,--experimental-pic -Wl,-pie -Wl,--import-memory -Wl,--import-memory -Wl,--shared-memory -Wl,--export-if-defined=__wasm_apply_data_relocs -Wl,--export=__wasm_call_ctors -Wl,--extra-features=atomics -Wl,--extra-features=bulk-memory -Wl,--extra-features=mutable-globals -Wl,--whole-archive -Wl,-lc -Wl,-lresolv -Wl,-lrt -Wl,-lm -Wl,-lpthread -Wl,-lwasi-emulated-mman -Wl,--no-whole-archive -Wl,--export-all"
+      # TODO: Most of these flags can probably be removed because they are redundant
+      as_fn_append CFLAGS " -fPIC -mexception-handling -fwasm-exceptions -mllvm --wasm-enable-sjlj"
+      as_fn_append LDFLAGS " -fPIC -mexception-handling -fwasm-exceptions -mllvm --wasm-enable-sjlj -Wl,-mllvm,--wasm-enable-sjlj"
+      as_fn_append LINKFORSHARED " -Wl,-mllvm,--wasm-enable-sjlj -Wl,--experimental-pic -Wl,-pie -Wl,--import-memory -Wl,--shared-memory -Wl,--export-if-defined=__wasm_apply_data_relocs -Wl,--export=__wasm_call_ctors -Wl,--extra-features=atomics -Wl,--extra-features=bulk-memory -Wl,--extra-features=mutable-globals -Wl,--whole-archive,-lc,-lutil,-lresolv,-lrt,-lm,-lpthread,-lc++,-lc++abi,-lwasi-emulated-mman,-lwasi-emulated-getpid,-lcommon-tag-stubs,--no-whole-archive -Wl,--export-all"
 
 fi
    ;; #(

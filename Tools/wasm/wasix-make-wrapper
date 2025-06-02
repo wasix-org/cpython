@@ -5,6 +5,6 @@ set -e
 
 echo "Running wasm-opt..."
 # TODO: We can significantly reduce the size of the wasm file by using --strip-debug instead of -g
-wasm-opt -O4 -g python.wasm -o python.wasm
+wasm-opt -O4 --experimental-new-eh -g python.wasm -o python.wasm
 
 echo "Done"

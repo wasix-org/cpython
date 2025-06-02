@@ -1,12 +1,13 @@
 [package]
-name = "wasmer/python"
+name = "wasmer/python-ehpic"
+version = "0.0.1"
 
 [fs]
-"/cpython" = "./cpython"
+"/cpython" = "/tmp/wasix-install/cpython"
 
 [[module]]
 name = "python"
-source = "python.wasm"
+source = "/tmp/wasix-install/cpython/bin/python3.wasm"
 abi = "wasi"
 
 [module.interfaces]

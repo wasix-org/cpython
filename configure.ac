@@ -2440,8 +2440,10 @@ AS_CASE([$ac_sys_system],
     dnl https://github.com/WebAssembly/wasi-libc/issues/233
     AS_VAR_APPEND([LDFLAGS_NODIST], [" -z stack-size=16777216 -Wl,--stack-first -Wl,--initial-memory=41943040"])
     AS_VAR_IF([enable_wasm_dynamic_linking], [yes], [
-      # TODO: Most of these flags can probably be removed 
-      AS_VAR_APPEND([LINKFORSHARED], [" -Wl,--experimental-pic -Wl,-pie -Wl,--import-memory -Wl,--import-memory -Wl,--shared-memory -Wl,--export-if-defined=__wasm_apply_data_relocs -Wl,--export=__wasm_call_ctors -Wl,--extra-features=atomics -Wl,--extra-features=bulk-memory -Wl,--extra-features=mutable-globals -Wl,--whole-archive -Wl,-lc -Wl,-lresolv -Wl,-lrt -Wl,-lm -Wl,-lpthread -Wl,-lwasi-emulated-mman -Wl,--no-whole-archive -Wl,--export-all"])
+      # TODO: Most of these flags can probably be removed because they are redundant
+      AS_VAR_APPEND([CFLAGS], [" -fPIC -mexception-handling -fwasm-exceptions -mllvm --wasm-enable-sjlj"])
+      AS_VAR_APPEND([LDFLAGS], [" -fPIC -mexception-handling -fwasm-exceptions -mllvm --wasm-enable-sjlj -Wl,-mllvm,--wasm-enable-sjlj"])
+      AS_VAR_APPEND([LINKFORSHARED], [" -Wl,-mllvm,--wasm-enable-sjlj -Wl,--experimental-pic -Wl,-pie -Wl,--import-memory -Wl,--shared-memory -Wl,--export-if-defined=__wasm_apply_data_relocs -Wl,--export=__wasm_call_ctors -Wl,--extra-features=atomics -Wl,--extra-features=bulk-memory -Wl,--extra-features=mutable-globals -Wl,--whole-archive,-lc,-lutil,-lresolv,-lrt,-lm,-lpthread,-lc++,-lc++abi,-lwasi-emulated-mman,-lwasi-emulated-getpid,-lcommon-tag-stubs,--no-whole-archive -Wl,--export-all"])
     ])
   ],
   [WASI], [
