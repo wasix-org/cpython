@@ -3,11 +3,11 @@ name = "wasmer/python-ehpic"
 version = "0.0.3"
 
 [fs]
-"/cpython" = "/tmp/wasix-install/cpython"
+"/cpython" = "../../artifacts/wasix-install/cpython"
 
 [[module]]
 name = "python"
-source = "/tmp/wasix-install/cpython/bin/python3.wasm"
+source = "../../artifacts/wasix-install/cpython/bin/python3.wasm"
 abi = "wasi"
 
 [module.interfaces]

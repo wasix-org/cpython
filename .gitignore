@@ -169,3 +169,4 @@ Python/frozen_modules/MANIFEST
 /python
 !/Python/
 
+/artifacts*
