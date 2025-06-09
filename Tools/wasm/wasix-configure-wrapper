@@ -72,11 +72,12 @@ export CFLAGS="\
 -mmutable-globals \
 -pthread \
 -mthread-model posix \
--ftls-model=local-exec \
+-ftls-model=global-dynamic \
 -fno-trapping-math \
 -D_WASI_EMULATED_MMAN \
 -D_WASI_EMULATED_SIGNAL \
 -D_WASI_EMULATED_PROCESS_CLOCKS \
+-DOPENSSL_THREADS \
 -Os -g -flto"
 
 export LIBS="\
