@@ -1,6 +1,8 @@
 set -ex
 
 WORKDIR=$(pwd)
+ARTIFACT_ROOT="${WORKDIR}/artifacts"
+
 if test -z "$WASIX_SYSROOT" ; then
     echo "WASIX_SYSROOT is not set. Please set it to the sysroot path (Something like /home/lennart/Documents/wasix-libc/sysroot)."
     exit 1
@@ -8,7 +10,7 @@ fi
 
 export WASI_SDK_VERSION=25
 
-export WASI_SDK_PATH="/tmp/wasix-libs/wasi-sdk"
+export WASI_SDK_PATH="${ARTIFACT_ROOT}/wasix-libs/wasi-sdk"
 if ! test -e "$WASI_SDK_PATH/.ready" ; then
     rm -rf $WASI_SDK_PATH || true
     mkdir -p $WASI_SDK_PATH
@@ -18,10 +20,10 @@ if ! test -e "$WASI_SDK_PATH/.ready" ; then
     touch $WASI_SDK_PATH/.ready
 fi
 
-WASMER_DIR="/tmp/wasmer"
+WASMER_DIR="${ARTIFACT_ROOT}/wasmer"
 WASIX_LIBC_TAG="v2024-07-08.1"
 
-export OPENSSL_DIR="/tmp/wasix-libs/openssl"
+export OPENSSL_DIR="${ARTIFACT_ROOT}/wasix-libs/openssl"
 if ! test -e "$OPENSSL_DIR/.ready" ; then
     rm -rf $OPENSSL_DIR || true
     mkdir -p $(dirname $OPENSSL_DIR)
@@ -38,11 +40,11 @@ fi
 export CROSS_BUILD_PYTHON=cross-build/build
 export CROSS_BUILD_WASIX=cross-build/wasix
 
-export WASIX_INSTALL=/tmp/wasix-install
+export WASIX_INSTALL=${ARTIFACT_ROOT}/wasix-install
 mkdir -p $WASIX_INSTALL
 
 # zlib
-export ZLIB_DIR="/tmp/wasix-libs/zlib"
+export ZLIB_DIR="${ARTIFACT_ROOT}/wasix-libs/zlib"
 if ! test -e "$ZLIB_DIR/.ready" ; then
     rm -rf $ZLIB_DIR || true
     mkdir -p $(dirname $ZLIB_DIR)
@@ -54,7 +56,7 @@ if ! test -e "$ZLIB_DIR/.ready" ; then
 fi
 
 # liblzma
-export LIBLZMA_DIR="/tmp/wasix-libs/liblzma"
+export LIBLZMA_DIR="${ARTIFACT_ROOT}/wasix-libs/liblzma"
 if ! test -e "$LIBLZMA_DIR/.ready" ; then
     rm -rf $LIBLZMA_DIR || true
     mkdir -p $(dirname $LIBLZMA_DIR)
@@ -67,7 +69,7 @@ if ! test -e "$LIBLZMA_DIR/.ready" ; then
 fi
 
 
-export UTIL_LINUX_DIR="/tmp/wasix-libs/util-linux"
+export UTIL_LINUX_DIR="${ARTIFACT_ROOT}/wasix-libs/util-linux"
 if ! test -e "$UTIL_LINUX_DIR/.ready" ; then
     rm -rf $UTIL_LINUX_DIR || true
     mkdir -p $(dirname $UTIL_LINUX_DIR)
@@ -79,7 +81,7 @@ if ! test -e "$UTIL_LINUX_DIR/.ready" ; then
     touch "$UTIL_LINUX_DIR/.ready"
 fi
 
-export NCURSES_DIR="/tmp/wasix-libs/ncurses"
+export NCURSES_DIR="${ARTIFACT_ROOT}/wasix-libs/ncurses"
 if ! test -e "$NCURSES_DIR/.ready" ; then
     rm -rf $NCURSES_DIR || true
     mkdir -p $(dirname $NCURSES_DIR)
@@ -90,7 +92,7 @@ if ! test -e "$NCURSES_DIR/.ready" ; then
     touch "$NCURSES_DIR/.ready"
 fi
 
-export READLINE_DIR="/tmp/wasix-libs/readline/readline"
+export READLINE_DIR="${ARTIFACT_ROOT}/wasix-libs/readline/readline"
 if ! test -e "$READLINE_DIR/.ready" ; then
     rm -rf $READLINE_DIR || true
     mkdir -p $(dirname $READLINE_DIR)

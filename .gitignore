@@ -169,3 +169,5 @@ Python/frozen_modules/MANIFEST
 /python
 !/Python/
 
+# Build artifacts and dependencies.
+/artifacts*
