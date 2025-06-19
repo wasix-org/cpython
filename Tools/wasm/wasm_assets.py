@@ -80,7 +80,6 @@ OMIT_NETWORKING_FILES = (
 OMIT_MODULE_FILES = {
     "_asyncio": ["asyncio/"],
     "_curses": ["curses/"],
-    "_ctypes": ["ctypes/"],
     "_decimal": ["decimal.py"],
     "_dbm": ["dbm/ndbm.py"],
     "_gdbm": ["dbm/gnu.py"],
