@@ -277,6 +277,52 @@ elif os.name == "posix":
         def find_library(name, is64 = False):
             return _get_soname(_findLib_crle(name, is64) or _findLib_gcc(name))
 
+    elif sys.platform == "wasix":
+        # Patch inspired by what alpine
+        def _is_wasm_dylink(filepath):
+            try:
+                with open(filepath, 'rb') as fh:
+                    magic = fh.read(4) == b'\x00asm'
+                    version_1 = fh.read(4) == b'\x01\x00\x00\x00'
+                    first_section_is_custom = fh.read(1) == b'\x00'
+                    # Skip the length bytes
+                    while fh.read(1)[0] & 0b10000000 == 1:
+                        continue
+                    next_byte_is_length_of_dylib = fh.read(1) == b'\x08'
+                    name_is_dylink = fh.read(8) == b'dylink.0'
+                    return magic and version_1 and first_section_is_custom and \
+                           next_byte_is_length_of_dylib and name_is_dylink
+            except:
+                return False
+
+        def find_library(name):
+            from glob import glob
+
+            builtin_libs = ['c', 'm', 'crypt', 'pthread', 'dl', 'resolv', 'rt', 'util', 'xnet']
+            builtin_lib_re = re.compile(r'(?:^(?:%s)$)|(?:.*lib(?:%s).so(?:[.].*)?$)' % ('|'.join(builtin_libs), '|'.join(builtin_libs)))
+
+            # absolute name?
+            if os.path.isabs(name):
+                return name
+            # Resolve all libs that are built into the main executable to libc
+            # TODO: Actually handle libc, as libc.so does not exist on disk
+            if builtin_lib_re.match(name):
+                return 'libc.so'
+
+            # search in standard locations (musl order)
+            paths = ['/lib', '/usr/local/lib', '/usr/lib']
+            if 'LD_LIBRARY_PATH' in os.environ:
+                paths = os.environ['LD_LIBRARY_PATH'].split(':') + paths
+            for d in paths:
+                f = os.path.join(d, name)
+                if _is_wasm_dylink(f):
+                    return os.path.basename(f)
+
+                prefix = os.path.join(d, 'lib'+name)
+                for suffix in ['.so.*', '.so']:
+                    for f in sorted(glob('{0}{1}'.format(prefix, suffix)), key=len, reverse=True):
+                        if _is_wasm_dylink(f):
+                            return os.path.basename(f)
     else:
 
         def _findSoname_ldconfig(name):
