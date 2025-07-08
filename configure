@@ -17818,6 +17818,11 @@ case $ac_sys_system in #(
     as_fn_append PLATFORM_OBJS ' Python/emscripten_signal.o Python/emscripten_trampoline.o'
     as_fn_append PLATFORM_HEADERS ' $(srcdir)/Include/internal/pycore_emscripten_signal.h $(srcdir)/Include/internal/pycore_emscripten_trampoline.h'
    ;; #(
+  WASIX) :
+
+    as_fn_append PLATFORM_OBJS ' Python/wasix_trampoline.o'
+    as_fn_append PLATFORM_HEADERS ' $(srcdir)/Include/internal/pycore_emscripten_trampoline.h'
+   ;; #(
   *) :
      ;;
 esac

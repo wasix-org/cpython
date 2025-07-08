@@ -25,7 +25,7 @@
  * trampoline mitigates common occurrences of bad fpcasts on Emscripten.
  */
 
-#if defined(__EMSCRIPTEN__) && defined(PY_CALL_TRAMPOLINE)
+#if (defined(__EMSCRIPTEN__) && defined(PY_CALL_TRAMPOLINE)) || defined(__wasi__)
 
 void _Py_EmscriptenTrampoline_Init(_PyRuntimeState *runtime);
 
