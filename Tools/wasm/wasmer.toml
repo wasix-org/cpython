@@ -5,12 +5,12 @@ entrypoint = "python"
 
 [fs]
 "/cpython" = "../../../cpython-install/cpython"
+"/home" = "./home"
 
 [[module]]
 name = "python"
 source = "../../../cpython-install/cpython/bin/python3.wasm"
 abi = "wasi"
-
 [module.interfaces]
 wasi = "0.1.0-unstable"
 
@@ -18,6 +18,5 @@ wasi = "0.1.0-unstable"
 name = "python"
 module = "python"
 runner = "wasi"
-
 [command.annotations.wasi]
-env = ["PYTHONEXECUTABLE=/bin/python", "PYTHONHOME=/cpython"]
+env = ["PYTHONEXECUTABLE=/bin/python", "PYTHONHOME=/cpython", "HOME=/home"]
