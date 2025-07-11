@@ -119,6 +119,13 @@ wasm32-wasi tests require wasmtime on PATH. Please follow instructions at
 https://wasmtime.dev/ to install wasmtime.
 """
 
+INSTALL_WASIXCC = """
+WASIX builds require wasixcc on PATH. Please install wasixcc from
+https://github.com/wasix-org/wasixcc and run
+`wasixcc --install-executables` to install the required binaries,
+and make sure the directory where the binaries are installed is in your PATH.
+"""
+
 INSTALL_WASMER = """
 wasm32-wasi tests require wasmer on PATH when wasmer is selected as the
 WASI_RUNTIME. Please follow instructions at
@@ -354,25 +361,28 @@ WASI = Platform(
     check=_check_wasi,
 )
 
+def _check_wasix() -> None:
+    wasixcc_path = shutil.which("wasixcc")
+    if wasixcc_path is None:
+        raise MissingDependency("wasixcc", INSTALL_WASIXCC)
+
 WASIX = Platform(
     "wasi",
     pythonexe="python.wasm",
     config_site=WASMTOOLS / "config.site-wasm32-wasix",
     configure_wrapper=WASMTOOLS / "wasix-configure-wrapper",
     ports=None,
-    cc=WASI_SDK_PATH / "bin" / "clang",
-    make_wrapper=WASMTOOLS / "wasix-make-wrapper",
+    cc=pathlib.PurePath(shutil.which("wasixcc") or _MISSING),
+    make_wrapper=None,
     environ={
-        "WASI_SDK_PATH": WASI_SDK_PATH,
         # workaround for https://github.com/python/cpython/issues/95952
         "HOSTRUNNER": (
             "wasmer run "
             "--env PYTHONPATH=/{relbuilddir}/build/lib.wasi-wasm32-{version}:/Lib "
             "--mapdir /:{srcdir} --"
         ),
-        "PATH": [WASI_SDK_PATH / "bin", os.environ["PATH"]],
     },
-    check=_check_wasi,
+    check=_check_wasix,
 )
 
 class Host(enum.Enum):

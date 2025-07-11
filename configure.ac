@@ -2435,16 +2435,6 @@ AS_CASE([$ac_sys_system],
     AC_DEFINE([_WASI_EMULATED_GETPID], [1], [Define to 1 if you want to emulate getpid() on WASI])
     AC_DEFINE([_WASI_EMULATED_PROCESS_CLOCKS], [1], [Define to 1 if you want to emulate process clocks on WASI])
     AC_DEFINE([_WASI_EMULATED_MMAN], [1], [Define to 1 if you want to emulate process clocks on WASI])
-    LIBS="$LIBS -lwasi-emulated-getpid -lwasi-emulated-mman -lwasi-emulated-process-clocks"
-    dnl increase initial memory and stack size, move stack first
-    dnl https://github.com/WebAssembly/wasi-libc/issues/233
-    AS_VAR_APPEND([LDFLAGS_NODIST], [" -z stack-size=16777216 -Wl,--stack-first -Wl,--initial-memory=41943040"])
-    AS_VAR_IF([enable_wasm_dynamic_linking], [yes], [
-      # TODO: Most of these flags can probably be removed because they are redundant
-      AS_VAR_APPEND([CFLAGS], [" -fvisibility=default -fPIC -mexception-handling -fwasm-exceptions -mllvm --wasm-enable-sjlj -mllvm --wasm-enable-eh -pthread -mthread-model posix -fno-trapping-math -ftls-model=global-dynamic "])
-      AS_VAR_APPEND([LDFLAGS], [" -fvisibility=default -fPIC -mexception-handling -fwasm-exceptions -mllvm --wasm-enable-sjlj -mllvm --wasm-enable-eh -pthread -mthread-model posix -fno-trapping-math -ftls-model=global-dynamic -Wl,-mllvm,--wasm-enable-sjlj"])
-      AS_VAR_APPEND([LINKFORSHARED], [" -fvisibility=default -fPIC -mexception-handling -fwasm-exceptions -mllvm --wasm-enable-sjlj -mllvm --wasm-enable-eh -pthread -mthread-model posix -fno-trapping-math -ftls-model=global-dynamic -Wl,-mllvm,--wasm-enable-sjlj -Wl,-mllvm,--wasm-enable-sjlj -Wl,--experimental-pic -Wl,-pie -Wl,--import-memory -Wl,--shared-memory -Wl,--export-if-defined=__wasm_apply_data_relocs -Wl,--export=__wasm_call_ctors -Wl,--extra-features=atomics -Wl,--extra-features=bulk-memory -Wl,--extra-features=mutable-globals -Wl,--whole-archive,-lc,-lutil,-lresolv,-lrt,-lm,-lpthread,-lc++,-lc++abi,-lunwind,-lwasi-emulated-mman,-lwasi-emulated-getpid,-lcommon-tag-stubs,-lclang_rt.builtins-wasm32,--no-whole-archive -Wl,--export-all"])
-    ])
   ],
   [WASI], [
     AC_DEFINE([_WASI_EMULATED_SIGNAL], [1], [Define to 1 if you want to emulate signals on WASI])

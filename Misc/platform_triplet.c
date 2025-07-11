@@ -266,7 +266,10 @@ PLATFORM_TRIPLET=darwin
 #elif defined(__VXWORKS__)
 PLATFORM_TRIPLET=vxworks
 #elif defined(__wasm32__)
-#  if defined(__EMSCRIPTEN__)
+// WASIX uses wasm32-wasi triplet
+#  if __has_include(<wasix/reflection.h>)
+PLATFORM_TRIPLET=wasm32-wasi
+#  elif defined(__EMSCRIPTEN__)
 PLATFORM_TRIPLET=wasm32-emscripten
 #  elif defined(__wasi__)
 #    if defined(_REENTRANT)

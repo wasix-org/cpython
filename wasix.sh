@@ -2,10 +2,7 @@
 
 set -euxo pipefail
 
-export WASI_SDK_PATH=/home/arshia/wasi-sdk
-export WASIX_SYSROOT=/home/arshia/repos/wasmer/wasix-libc/sysroot32-ehpic
 export DEPS_DIR=$(pwd)/../python-wasix-binaries
-export OPENSSL_DIR=$(pwd)/../python-wasix-binaries/openssl
 
 export WASIX_INSTALL=$(pwd)/../cpython-install
 mkdir -p $WASIX_INSTALL
@@ -19,16 +16,19 @@ export WASIX_LIBUUID_CFLAGS="-I $DEPS_DIR/include/libuuid"
 export WASIX_LIBUUID_LIBS="-L$DEPS_DIR/lib -luuid"
 export WASIX_LIBREADLINE_CFLAGS="-I $DEPS_DIR/include/readline"
 export WASIX_LIBREADLINE_LIBS="-L$DEPS_DIR/lib -lreadline -lncurses"
+export WASIX_CURSES_CFLAGS="-I $DEPS_DIR/include/ncurses"
+export WASIX_CURSES_LIBS="-L$DEPS_DIR/lib -lncurses"
 export WASIX_LIBFFI_CFLAGS="-I$DEPS_DIR/include/libffi"
 export WASIX_LIBFFI_LIBS="-L$DEPS_DIR/lib -lffi"
 export WASIX_LIBSQLITE3_CFLAGS="-I$DEPS_DIR/include/sqlite"
-export WASIX_LIBSQLITE3_LIBS="-L$DEPS_DIR/lib -lsqlite3 -licudata -licui18n -licuuc -licutu -licuio -lc++ -lc++abi -lunwind -lcommon-tag-stubs"
+export WASIX_LIBSQLITE3_LIBS="-L$DEPS_DIR/lib -lsqlite3 -licudata -licui18n -licuuc -licutu -licuio"
+export WASIX_OPENSSL_DIR="$DEPS_DIR/openssl"
 
 python3 Tools/wasm/wasm_build.py wasix clean
 python3 Tools/wasm/wasm_build.py wasix configure
 python3 Tools/wasm/wasm_build.py wasix build
 
-cd builddir/wasix
-rm -r "$WASIX_INSTALL/cpython" || true
+pushd builddir/wasix
 make install
 chmod -R a+rw "$WASIX_INSTALL/cpython"
+popd
