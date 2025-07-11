@@ -19,6 +19,8 @@ export WASIX_LIBUUID_CFLAGS="-I $DEPS_DIR/include/libuuid"
 export WASIX_LIBUUID_LIBS="-L$DEPS_DIR/lib -luuid"
 export WASIX_LIBREADLINE_CFLAGS="-I $DEPS_DIR/include/readline"
 export WASIX_LIBREADLINE_LIBS="-L$DEPS_DIR/lib -lreadline -lncurses"
+export WASIX_LIBFFI_CFLAGS="-I$DEPS_DIR/include/libffi"
+export WASIX_LIBFFI_LIBS="-L$DEPS_DIR/lib -lffi"
 
 python3 Tools/wasm/wasm_build.py wasix clean
 python3 Tools/wasm/wasm_build.py wasix configure
