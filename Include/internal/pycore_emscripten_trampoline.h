@@ -25,7 +25,7 @@
  * trampoline mitigates common occurrences of bad fpcasts on Emscripten.
  */
 
-#if (defined(__EMSCRIPTEN__) && defined(PY_CALL_TRAMPOLINE)) || defined(__wasi__)
+#if defined(__EMSCRIPTEN__) && defined(PY_CALL_TRAMPOLINE)
 
 void _Py_EmscriptenTrampoline_Init(_PyRuntimeState *runtime);
 
@@ -59,6 +59,28 @@ _PyEM_TrampolineCall_Reflection(PyCFunctionWithKeywords func,
 #define descr_get_trampoline_call(get, obj, closure) \
     _PyEM_TrampolineCall((PyCFunctionWithKeywords)(get), (obj), (PyObject*)(closure), NULL)
 
+#elif defined(__wasi__) // WASIX
+
+#define _Py_EmscriptenTrampoline_Init(runtime)
+
+PyObject*
+_PyWASIX_TrampolineCall(PyCFunctionWithKeywords func,
+                                PyObject* self,
+                                PyObject* args,
+                                PyObject* kw);
+
+#define _PyCFunction_TrampolineCall(meth, self, args) \
+    _PyWASIX_TrampolineCall( \
+        (*(PyCFunctionWithKeywords)(void(*)(void))(meth)), (self), (args), NULL)
+
+#define _PyCFunctionWithKeywords_TrampolineCall(meth, self, args, kw) \
+    _PyWASIX_TrampolineCall((meth), (self), (args), (kw))
+
+#define descr_set_trampoline_call(set, obj, value, closure) \
+    ((int)_PyWASIX_TrampolineCall((PyCFunctionWithKeywords)(set), (obj), (value), (PyObject*)(closure)))
+
+#define descr_get_trampoline_call(get, obj, closure) \
+    _PyWASIX_TrampolineCall((PyCFunctionWithKeywords)(get), (obj), (PyObject*)(closure), NULL)
 
 #else // defined(__EMSCRIPTEN__) && defined(PY_CALL_TRAMPOLINE)
 
