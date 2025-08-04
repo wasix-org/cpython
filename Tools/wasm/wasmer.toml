@@ -6,6 +6,7 @@ entrypoint = "python"
 [fs]
 "/cpython" = "../../../cpython-install/cpython"
 "/home" = "./home"
+"/usr/local/ssl" = "../../../python-wasix-binaries/ssl-certs"
 
 [[module]]
 name = "python"
