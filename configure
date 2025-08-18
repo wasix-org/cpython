@@ -9614,9 +9614,9 @@ printf "%s\n" "#define _WASI_EMULATED_MMAN 1" >>confdefs.h
 then :
 
       # TODO: Most of these flags can probably be removed because they are redundant
-      as_fn_append CFLAGS " -fvisibility=default -fPIC -mexception-handling -fwasm-exceptions -mllvm --wasm-enable-sjlj -pthread -mthread-model posix -fno-trapping-math -ftls-model=global-dynamic "
-      as_fn_append LDFLAGS " -fvisibility=default -fPIC -mexception-handling -fwasm-exceptions -mllvm --wasm-enable-sjlj -pthread -mthread-model posix -fno-trapping-math -ftls-model=global-dynamic -Wl,-mllvm,--wasm-enable-sjlj"
-      as_fn_append LINKFORSHARED " -fvisibility=default -fPIC -mexception-handling -fwasm-exceptions -mllvm --wasm-enable-sjlj -pthread -mthread-model posix -fno-trapping-math -ftls-model=global-dynamic -Wl,-mllvm,--wasm-enable-sjlj -Wl,-mllvm,--wasm-enable-sjlj -Wl,--experimental-pic -Wl,-pie -Wl,--import-memory -Wl,--shared-memory -Wl,--export-if-defined=__wasm_apply_data_relocs -Wl,--export=__wasm_call_ctors -Wl,--extra-features=atomics -Wl,--extra-features=bulk-memory -Wl,--extra-features=mutable-globals -Wl,--whole-archive,-lc,-lutil,-lresolv,-lrt,-lm,-lpthread,-lc++,-lc++abi,-lunwind,-lwasi-emulated-mman,-lwasi-emulated-getpid,-lcommon-tag-stubs,--no-whole-archive -Wl,--export-all"
+      as_fn_append CFLAGS " -fvisibility=default -fPIC -mexception-handling -fwasm-exceptions -mllvm --wasm-enable-sjlj -mllvm --wasm-enable-eh -pthread -mthread-model posix -fno-trapping-math -ftls-model=global-dynamic "
+      as_fn_append LDFLAGS " -fvisibility=default -fPIC -mexception-handling -fwasm-exceptions -mllvm --wasm-enable-sjlj -mllvm --wasm-enable-eh -pthread -mthread-model posix -fno-trapping-math -ftls-model=global-dynamic -Wl,-mllvm,--wasm-enable-sjlj"
+      as_fn_append LINKFORSHARED " -fvisibility=default -fPIC -mexception-handling -fwasm-exceptions -mllvm --wasm-enable-sjlj -mllvm --wasm-enable-eh -pthread -mthread-model posix -fno-trapping-math -ftls-model=global-dynamic -Wl,-mllvm,--wasm-enable-sjlj -Wl,-mllvm,--wasm-enable-sjlj -Wl,--experimental-pic -Wl,-pie -Wl,--import-memory -Wl,--shared-memory -Wl,--export-if-defined=__wasm_apply_data_relocs -Wl,--export=__wasm_call_ctors -Wl,--extra-features=atomics -Wl,--extra-features=bulk-memory -Wl,--extra-features=mutable-globals -Wl,--whole-archive,-lc,-lutil,-lresolv,-lrt,-lm,-lpthread,-lc++,-lc++abi,-lunwind,-lwasi-emulated-mman,-lwasi-emulated-getpid,-lcommon-tag-stubs,-lclang_rt.builtins-wasm32,--no-whole-archive -Wl,--export-all"
 
 fi
    ;; #(
