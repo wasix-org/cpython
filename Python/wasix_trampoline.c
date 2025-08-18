@@ -1,5 +1,4 @@
-#if defined __has_include
-#if __has_include(<wasix/reflection.h>)
+#if defined(__wasi__) && __has_include(<wasix/reflection.h>) // WASIX
 #include <Python.h>
 
 #include "pycore_runtime.h"
@@ -151,5 +150,4 @@ PyObject *_PyWASIX_TrampolineCall(PyCFunctionWithKeywords func, PyObject *self,
   }
 }
 
-#endif
 #endif

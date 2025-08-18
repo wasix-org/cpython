@@ -59,7 +59,7 @@ _PyEM_TrampolineCall_Reflection(PyCFunctionWithKeywords func,
 #define descr_get_trampoline_call(get, obj, closure) \
     _PyEM_TrampolineCall((PyCFunctionWithKeywords)(get), (obj), (PyObject*)(closure), NULL)
 
-#elif defined(__wasi__) // WASIX
+#elif defined(__wasi__) && __has_include(<wasix/reflection.h>) // WASIX
 
 #define _Py_EmscriptenTrampoline_Init(runtime)
 
