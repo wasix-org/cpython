@@ -290,6 +290,11 @@ static PyObject *
 fcntl_flock_impl(PyObject *module, int fd, int code)
 /*[clinic end generated code: output=84059e2b37d2fc64 input=0bfc00f795953452]*/
 {
+#ifdef __wasi__
+    PyErr_SetString(PyExc_NotImplementedError,
+                        "fcntl.lockf() is not implemented on this platform");
+    return NULL;
+#else
     int ret;
     int async_err = 0;
 
@@ -336,6 +341,7 @@ fcntl_flock_impl(PyObject *module, int fd, int code)
         return !async_err ? PyErr_SetFromErrno(PyExc_OSError) : NULL;
     }
     Py_RETURN_NONE;
+#endif
 }
 
 
@@ -378,6 +384,11 @@ fcntl_lockf_impl(PyObject *module, int fd, int code, PyObject *lenobj,
                  PyObject *startobj, int whence)
 /*[clinic end generated code: output=4985e7a172e7461a input=5480479fc63a04b8]*/
 {
+#ifdef __wasi__
+    PyErr_SetString(PyExc_NotImplementedError,
+                        "fcntl.lockf() is not implemented on this platform");
+    return NULL;
+#else
     int ret;
     int async_err = 0;
 
@@ -439,6 +450,7 @@ fcntl_lockf_impl(PyObject *module, int fd, int code, PyObject *lenobj,
         return !async_err ? PyErr_SetFromErrno(PyExc_OSError) : NULL;
     }
     Py_RETURN_NONE;
+#endif
 }
 
 /* List of functions */
