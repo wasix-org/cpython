@@ -21,6 +21,8 @@ export WASIX_LIBREADLINE_CFLAGS="-I $DEPS_DIR/include/readline"
 export WASIX_LIBREADLINE_LIBS="-L$DEPS_DIR/lib -lreadline -lncurses"
 export WASIX_LIBFFI_CFLAGS="-I$DEPS_DIR/include/libffi"
 export WASIX_LIBFFI_LIBS="-L$DEPS_DIR/lib -lffi"
+export WASIX_LIBSQLITE3_CFLAGS="-I$DEPS_DIR/include/sqlite"
+export WASIX_LIBSQLITE3_LIBS="-L$DEPS_DIR/lib -lsqlite3 -licudata -licui18n -licuuc -licutu -licuio -lc++ -lc++abi -lunwind -lcommon-tag-stubs"
 
 python3 Tools/wasm/wasm_build.py wasix clean
 python3 Tools/wasm/wasm_build.py wasix configure
