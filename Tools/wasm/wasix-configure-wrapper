@@ -44,6 +44,12 @@ export LIBREADLINE_LIBS=$WASIX_LIBREADLINE_LIBS
 export CURSES_CFLAGS=$WASIX_CURSES_CFLAGS
 export CURSES_LIBS=$WASIX_CURSES_LIBS
 
+export PANEL_CFLAGS=$WASIX_PANEL_CFLAGS
+export PANEL_LIBS=$WASIX_PANEL_LIBS
+
+export LIBB2_CFLAGS=$WASIX_LIBB2_CFLAGS
+export LIBB2_LIBS=$WASIX_LIBB2_LIBS
+
 export LIBFFI_CFLAGS=$WASIX_LIBFFI_CFLAGS
 export LIBFFI_LIBS=$WASIX_LIBFFI_LIBS
 
@@ -63,9 +69,10 @@ export CFLAGS="\
   -DOPENSSL_THREADS \
   -Os -flto"
 
-echo $WASIX_INSTALL
-
-"$@" \
+WASIXCC_RUN_WASM_OPT=no \
+  "$@" \
   --with-openssl=$WASIX_OPENSSL_DIR \
+  --with-pkg-config=no \
   --with-readline=yes \
+  --with-ensurepip=install \
   --prefix=$WASIX_INSTALL/cpython
