@@ -74,8 +74,56 @@ except ModuleNotFoundError:
 else:
     _mswindows = True
 
+def _use_posix_spawn():
+    """Check if posix_spawn() can be used for subprocess.
+
+    subprocess requires a posix_spawn() implementation that properly reports
+    errors to the parent process, & sets errno on the following failures:
+
+    * Process attribute actions failed.
+    * File actions failed.
+    * exec() failed.
+
+    Prefer an implementation which can use vfork() in some cases for best
+    performance.
+    """
+    if _mswindows or not hasattr(os, 'posix_spawn'):
+        # os.posix_spawn() is not available
+        return False
+
+    if sys.platform in ('darwin', 'sunos5', 'wasix'):
+        # posix_spawn() is a syscall on both macOS and Solaris,
+        # and properly reports errors
+        return True
+
+    # Check libc name and runtime libc version
+    try:
+        ver = os.confstr('CS_GNU_LIBC_VERSION')
+        # parse 'glibc 2.28' as ('glibc', (2, 28))
+        parts = ver.split(maxsplit=1)
+        if len(parts) != 2:
+            # reject unknown format
+            raise ValueError
+        libc = parts[0]
+        version = tuple(map(int, parts[1].split('.')))
+
+        if sys.platform == 'linux' and libc == 'glibc' and version >= (2, 24):
+            # glibc 2.24 has a new Linux posix_spawn implementation using vfork
+            # which properly reports errors to the parent process.
+            return True
+        # Note: Don't use the implementation in earlier glibc because it doesn't
+        # use vfork (even if glibc 2.26 added a pipe to properly report errors
+        # to the parent process).
+    except (AttributeError, ValueError, OSError):
+        # os.confstr() or CS_GNU_LIBC_VERSION value not available
+        pass
+
+    # By default, assume that posix_spawn() does not properly report errors.
+    return False
+
 # some platforms do not support subprocesses
 _can_fork_exec = sys.platform not in {"emscripten", "wasi", "wasix", "ios", "tvos", "watchos"}
+_USE_POSIX_SPAWN = _use_posix_spawn()
 
 if _mswindows:
     import _winapi
@@ -105,6 +153,14 @@ else:
     if _can_fork_exec:
         from _posixsubprocess import fork_exec as _fork_exec
         # used in methods that are called by __del__
+        class _del_safe:
+            waitpid = os.waitpid
+            waitstatus_to_exitcode = os.waitstatus_to_exitcode
+            WIFSTOPPED = os.WIFSTOPPED
+            WSTOPSIG = os.WSTOPSIG
+            WNOHANG = os.WNOHANG
+            ECHILD = errno.ECHILD
+    elif _USE_POSIX_SPAWN:
         class _del_safe:
             waitpid = os.waitpid
             waitstatus_to_exitcode = os.waitstatus_to_exitcode
@@ -696,59 +752,8 @@ def getoutput(cmd, *, encoding=None, errors=None):
     """
     return getstatusoutput(cmd, encoding=encoding, errors=errors)[1]
 
-
-
-def _use_posix_spawn():
-    """Check if posix_spawn() can be used for subprocess.
-
-    subprocess requires a posix_spawn() implementation that properly reports
-    errors to the parent process, & sets errno on the following failures:
-
-    * Process attribute actions failed.
-    * File actions failed.
-    * exec() failed.
-
-    Prefer an implementation which can use vfork() in some cases for best
-    performance.
-    """
-    if _mswindows or not hasattr(os, 'posix_spawn'):
-        # os.posix_spawn() is not available
-        return False
-
-    if sys.platform in ('darwin', 'sunos5', 'wasix'):
-        # posix_spawn() is a syscall on both macOS and Solaris,
-        # and properly reports errors
-        return True
-
-    # Check libc name and runtime libc version
-    try:
-        ver = os.confstr('CS_GNU_LIBC_VERSION')
-        # parse 'glibc 2.28' as ('glibc', (2, 28))
-        parts = ver.split(maxsplit=1)
-        if len(parts) != 2:
-            # reject unknown format
-            raise ValueError
-        libc = parts[0]
-        version = tuple(map(int, parts[1].split('.')))
-
-        if sys.platform == 'linux' and libc == 'glibc' and version >= (2, 24):
-            # glibc 2.24 has a new Linux posix_spawn implementation using vfork
-            # which properly reports errors to the parent process.
-            return True
-        # Note: Don't use the implementation in earlier glibc because it doesn't
-        # use vfork (even if glibc 2.26 added a pipe to properly report errors
-        # to the parent process).
-    except (AttributeError, ValueError, OSError):
-        # os.confstr() or CS_GNU_LIBC_VERSION value not available
-        pass
-
-    # By default, assume that posix_spawn() does not properly report errors.
-    return False
-
-
 # These are primarily fail-safe knobs for negatives. A True value does not
 # guarantee the given libc/syscall API will be used.
-_USE_POSIX_SPAWN = _use_posix_spawn()
 _USE_VFORK = True
 _HAVE_POSIX_SPAWN_CLOSEFROM = hasattr(os, 'POSIX_SPAWN_CLOSEFROM')
 
@@ -821,7 +826,7 @@ class Popen:
                  encoding=None, errors=None, text=None, umask=-1, pipesize=-1,
                  process_group=None):
         """Create new Popen instance."""
-        if not _can_fork_exec:
+        if not _can_fork_exec and not _USE_POSIX_SPAWN:
             raise OSError(
                 errno.ENOTSUP, f"{sys.platform} does not support processes."
             )
