@@ -1,8 +1,9 @@
-#if defined(__wasi__) && __has_include(<wasix/reflection.h>) // WASIX
+#if defined(__wasi__)
 #include <Python.h>
 
 #include "pycore_runtime.h"
 #include <wasix/reflection.h>
+#include <wasix/call_dynamic.h>
 
 #define CACHE_INITIAL_CAP 16
 #define CACHE_MAX_LOAD 0.5
@@ -21,13 +22,13 @@ static size_t cache_capacity = 0;    // Current capacity of the cache
 static size_t cache_entries = 0;     // Current number of entries in the cache
 static size_t cache_max_entries = 0; // Maximum size before growing
 
-static void cache_init() {
+static void cache_init(void) {
   argument_count_cache = calloc(CACHE_INITIAL_CAP, sizeof(cache_entry_t));
   cache_capacity = CACHE_INITIAL_CAP;
   cache_max_entries = cache_capacity * CACHE_MAX_LOAD;
 }
 
-static void cache_grow() {
+static void cache_grow(void) {
   assert(argument_count_cache != NULL);
 
   size_t new_capacity = cache_capacity * 2;
@@ -103,6 +104,20 @@ typedef PyObject *(*one_arg)(PyObject *);
 typedef PyObject *(*two_arg)(PyObject *, PyObject *);
 typedef PyObject *(*three_arg)(PyObject *, PyObject *, PyObject *);
 
+static bool PyWASIX_Reflection_Available(void) {
+  wasix_reflection_result_t result;
+  int code = wasix_reflect_signature(
+    (wasix_function_pointer_t)1, NULL, 0, NULL, 0, &result);
+  if (code == -1 && errno == ENOTSUP) {
+    return false;
+  }
+  return true;
+}
+
+void _PyWASIX_Trampoline_Init(_PyRuntimeState *runtime) {
+  runtime->wasm_type_reflection_available = PyWASIX_Reflection_Available();
+}
+
 int _PyWASIX_CountFuncParams(PyCFunctionWithKeywords func) {
   int *argument_count_ptr = cache_get((int)(size_t)func);
   if (argument_count_ptr != NULL) {
@@ -124,8 +139,8 @@ int _PyWASIX_CountFuncParams(PyCFunctionWithKeywords func) {
   return argument_count;
 }
 
-PyObject *_PyWASIX_TrampolineCall(PyCFunctionWithKeywords func, PyObject *self,
-                                  PyObject *args, PyObject *kw) {
+PyObject *_PyWASIX_TrampolineCall_Cached(PyCFunctionWithKeywords func, PyObject *self,
+                                         PyObject *args, PyObject *kw) {
   int argument_count = _PyWASIX_CountFuncParams(func);
 
   switch (argument_count) {
@@ -148,6 +163,38 @@ PyObject *_PyWASIX_TrampolineCall(PyCFunctionWithKeywords func, PyObject *self,
     PyErr_SetString(PyExc_RuntimeError, "Unsupported number of arguments");
     return NULL;
   }
+}
+
+PyObject *_PyWASIX_TrampolineCall_Dynamic(PyCFunctionWithKeywords func, PyObject *self,
+                                          PyObject *args, PyObject *kw) {
+  wasix_raw_value_with_type_t wasm_args[3];
+  wasm_args[0].type = WASIX_VALUE_TYPE_I32;
+  memcpy(&wasm_args[0].value, &self, sizeof(PyObject *));
+  wasm_args[1].type = WASIX_VALUE_TYPE_I32;
+  memcpy(&wasm_args[1].value, &args, sizeof(PyObject *));
+  wasm_args[2].type = WASIX_VALUE_TYPE_I32;
+  memcpy(&wasm_args[2].value, &kw, sizeof(PyObject *));
+
+  wasix_raw_value_with_type_t wasm_result;
+  size_t result_count = 1;
+
+  if (wasix_call_dynamic((wasix_function_pointer_t)func, wasm_args, 3,
+                           &wasm_result, &result_count, false) != 0) {
+    PyErr_SetString(PyExc_RuntimeError, "Failed to call function dynamically");
+    return NULL;
+  }
+
+  // Note: in JS environments, where this code is actually used, WASIX has to
+  // "guess" the return type based on how big the return value is. On a 32-bit
+  // platform all pointers are 32-bit, so it will return WASIX_VALUE_TYPE_I32.
+  if (result_count != 1 || wasm_result.type != WASIX_VALUE_TYPE_I32) {
+    PyErr_SetString(PyExc_RuntimeError, "Unexpected function return type");
+    return NULL;
+  }
+
+  PyObject *result;
+  memcpy(&result, &wasm_result.value, sizeof(PyObject *));
+  return result;
 }
 
 #endif

@@ -350,7 +350,7 @@ typedef struct pyruntimestate {
     /* _PyRuntimeState.interpreters.main */
     PyInterpreterState _main_interpreter;
 
-#if defined(__EMSCRIPTEN__) && defined(PY_CALL_TRAMPOLINE)
+#if (defined(__EMSCRIPTEN__) && defined(PY_CALL_TRAMPOLINE)) || defined(__wasi__)
     // Used in "Python/emscripten_trampoline.c" to choose between type
     // reflection trampoline and EM_JS trampoline.
     bool wasm_type_reflection_available;

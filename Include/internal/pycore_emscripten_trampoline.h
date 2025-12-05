@@ -59,12 +59,25 @@ _PyEM_TrampolineCall_Reflection(PyCFunctionWithKeywords func,
 #define descr_get_trampoline_call(get, obj, closure) \
     _PyEM_TrampolineCall((PyCFunctionWithKeywords)(get), (obj), (PyObject*)(closure), NULL)
 
-#elif defined(__wasi__) && __has_include(<wasix/reflection.h>) // WASIX
+#elif defined(__wasi__)
 
 #define _Py_EmscriptenTrampoline_Init(runtime)
 
+void _PyWASIX_Trampoline_Init(_PyRuntimeState *runtime);
+
+#define _PyWASIX_TrampolineCall(meth, self, args, kw) \
+    ((_PyRuntime.wasm_type_reflection_available) ? \
+        (_PyWASIX_TrampolineCall_Cached((PyCFunctionWithKeywords)(meth), (self), (args), (kw))) : \
+        (_PyWASIX_TrampolineCall_Dynamic((PyCFunctionWithKeywords)(meth), (self), (args), (kw))))
+
 PyObject*
-_PyWASIX_TrampolineCall(PyCFunctionWithKeywords func,
+_PyWASIX_TrampolineCall_Cached(PyCFunctionWithKeywords func,
+                                PyObject* self,
+                                PyObject* args,
+                                PyObject* kw);
+
+PyObject*
+_PyWASIX_TrampolineCall_Dynamic(PyCFunctionWithKeywords func,
                                 PyObject* self,
                                 PyObject* args,
                                 PyObject* kw);

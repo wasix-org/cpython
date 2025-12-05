@@ -432,6 +432,8 @@ init_runtime(_PyRuntimeState *runtime,
 
 #if defined(__EMSCRIPTEN__) && defined(PY_CALL_TRAMPOLINE)
     _Py_EmscriptenTrampoline_Init(runtime);
+#elif defined(__wasi__)
+    _PyWASIX_Trampoline_Init(runtime);
 #endif
 
     runtime->_initialized = 1;
