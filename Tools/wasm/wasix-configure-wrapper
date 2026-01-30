@@ -70,7 +70,7 @@ export LD="wasixld"
 
 export CFLAGS="\
   -DOPENSSL_THREADS \
-  -Os -flto"
+  -flto"
 
 WASIXCC_RUN_WASM_OPT=no \
   "$@" \
