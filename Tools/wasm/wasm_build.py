@@ -563,7 +563,7 @@ class BuildProfile:
     @property
     def make_cmd(self) -> List[str]:
         """Generate make command"""
-        cmd = ["make"]
+        cmd = ["make", "-j8"]
         platform = self.host.platform
         if platform.make_wrapper:
             cmd.insert(0, os.fspath(platform.make_wrapper))
