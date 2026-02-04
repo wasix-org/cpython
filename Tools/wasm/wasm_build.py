@@ -119,9 +119,10 @@ wasm32-wasi tests require wasmtime on PATH. Please follow instructions at
 https://wasmtime.dev/ to install wasmtime.
 """
 
-INSTALL_WASIX_COMPILER = """
-WASIX builds require wasix-clang or wasixcc in PATH. Please install wasix-clang from
-https://github.com/wasix-org/wasix-clang, and make sure it is in your PATH.
+INSTALL_WASIXCC = """
+WASIX builds requires wasixcc in PATH. Please install wasixcc by running
+curl -fsSL https://wasix.cc | sh
+or follow instructions at https://github.com/wasix-org/wasixcc.
 """
 
 INSTALL_WASMER = """
@@ -359,18 +360,10 @@ WASI = Platform(
     check=_check_wasi,
 )
 
-def _wasix_compiler_path() -> Optional[pathlib.PurePath]:
-    wasix_clang_path = shutil.which("wasix-clang")
-    if wasix_clang_path is not None:
-        return wasix_clang_path
-    wasixcc_path = shutil.which("wasixcc")
-    if wasixcc_path is not None:
-        return wasixcc_path
-    return None
-
 def _check_wasix() -> None:
-    if _wasix_compiler_path() is None:
-        raise MissingDependency("wasix-clang", INSTALL_WASIX_COMPILER)
+    wasixcc_path = shutil.which("wasixcc")
+    if wasixcc_path is None:
+        raise MissingDependency("wasixcc", INSTALL_WASIXCC)
 
 WASIX = Platform(
     "wasi",
@@ -378,7 +371,7 @@ WASIX = Platform(
     config_site=WASMTOOLS / "config.site-wasm32-wasix",
     configure_wrapper=WASMTOOLS / "wasix-configure-wrapper",
     ports=None,
-    cc=pathlib.PurePath(_wasix_compiler_path() or _MISSING),
+    cc=pathlib.PurePath(shutil.which("wasixcc") or _MISSING),
     make_wrapper=None,
     environ={
         # workaround for https://github.com/python/cpython/issues/95952

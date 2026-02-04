@@ -58,29 +58,25 @@ export_if_set_for_wasix LIBSQLITE3_LIBS
 export_if_set_for_wasix PKG_CONFIG_SYSROOT_DIR
 export_if_set_for_wasix PKG_CONFIG_LIBDIR
 
-export RANLIB="llvm-ranlib"
-export AR="llvm-ar"
-export NM="llvm-nm"
-export CC="clang"
-export CXX="clang++"
-export LD="wasm-ld"
 export EXTRA_CONFIGURE_FLAGS=""
 
 # Use a compiler wrapper if available
-if command -v wasix-clang ; then
-    export CC="wasix-clang"
-    export CXX="wasix-clang++"
-elif command -v wasixcc ; then
-    export WASIXCC_FLAGS="-sPIC=yes -sWASM_EXCEPTIONS=yes -sINCLUDE_CPP_SYMBOLS=yes -sWASM_OPT_FLAGS=-O4:--strip-debug"
-    export RANLIB="wasixranlib"
-    export AR="wasixar"
-    export NM="wasixnm"
-    export CC="wasixcc $WASIXCC_FLAGS"
-    export CXX="wasix++ $WASIXCC_FLAGS"
-    export LD="wasixld"
-    export WASIXCC_RUN_WASM_OPT="no"
-    export EXTRA_CONFIGURE_FLAGS="--with-pkg-config=no"
+
+if ! command -v wasixcc ; then
+    echo "ERROR: wasixcc not found in PATH. Please install wasixcc or adjust your PATH." >&2
+    exit 1
 fi
+
+export WASIXCC_FLAGS="-sPIC=yes -sWASM_EXCEPTIONS=yes -sINCLUDE_CPP_SYMBOLS=yes -sWASM_OPT_FLAGS=-O4:--strip-debug"
+export RANLIB="wasixranlib"
+export AR="wasixar"
+export NM="wasixnm"
+export CC="wasixcc $WASIXCC_FLAGS"
+export CXX="wasix++ $WASIXCC_FLAGS"
+export LD="wasixld"
+export WASIXCC_RUN_WASM_OPT="no"
+export WASIXCC_WASM_EXCEPTIONS="yes"
+export WASIXCC_PIC="yes"
 
 export CFLAGS="\
   -DOPENSSL_THREADS \
