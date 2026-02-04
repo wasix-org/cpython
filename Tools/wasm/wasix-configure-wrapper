@@ -67,19 +67,21 @@ if ! command -v wasixcc ; then
     exit 1
 fi
 
-export WASIXCC_FLAGS="-sPIC=yes -sWASM_EXCEPTIONS=yes -sINCLUDE_CPP_SYMBOLS=yes -sWASM_OPT_FLAGS=-O4:--strip-debug"
 export RANLIB="wasixranlib"
 export AR="wasixar"
 export NM="wasixnm"
-export CC="wasixcc $WASIXCC_FLAGS"
-export CXX="wasix++ $WASIXCC_FLAGS"
+export CC="wasixcc"
+export CXX="wasix++"
 export LD="wasixld"
 export WASIXCC_RUN_WASM_OPT="no"
 export WASIXCC_WASM_EXCEPTIONS="yes"
 export WASIXCC_PIC="yes"
-export INCLUDE_CPP_SYMBOLS="yes"
+export WASIXCC_INCLUDE_CPP_SYMBOLS="yes"
 # Add the other locations to the search path
-export WASIXCC_COMPILER_FLAGS="-Wl,-L${WASIXCC_SYSROOT}/usr/local/lib/wasm32-wasi:-I${WASIXCC_SYSROOT}/usr/local/include:-Wl,-mllvm,--wasm-enable-eh:-Wl,-mllvm,--wasm-enable-sjlj:-Wl,-mllvm,--wasm-use-legacy-eh=false:-Wl,-mllvm,--exception-model=wasm:-iwithsysroot:/usr/local/include/c++/v1"
+WASIXCC_COMPILER_FLAGS="-Wl,-L${WASIXCC_SYSROOT}/usr/local/lib/wasm32-wasi:-I${WASIXCC_SYSROOT}/usr/local/include:-iwithsysroot:/usr/local/include/c++/v1"
+# Make clang emit the non-legacy exception handling directly
+WASIXCC_COMPILER_FLAGS+=":-Wl,-mllvm,--wasm-enable-eh:-Wl,-mllvm,--wasm-enable-sjlj:-Wl,-mllvm,--wasm-use-legacy-eh=false:-Wl,-mllvm,--exception-model=wasm"
+export WASIXCC_COMPILER_FLAGS
 
 export CFLAGS="\
   -DOPENSSL_THREADS \
