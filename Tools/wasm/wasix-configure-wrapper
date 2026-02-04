@@ -78,10 +78,9 @@ export WASIXCC_WASM_EXCEPTIONS="yes"
 export WASIXCC_PIC="yes"
 export WASIXCC_INCLUDE_CPP_SYMBOLS="yes"
 # Add the other locations to the search path
-WASIXCC_COMPILER_FLAGS="-Wl,-L${WASIXCC_SYSROOT}/usr/local/lib/wasm32-wasi:-I${WASIXCC_SYSROOT}/usr/local/include:-iwithsysroot:/usr/local/include/c++/v1"
+export WASIXCC_COMPILER_FLAGS="-Wl,-L${WASIXCC_SYSROOT}/usr/local/lib/wasm32-wasi:-I${WASIXCC_SYSROOT}/usr/local/include:-Wl,-mllvm,--wasm-enable-eh:-Wl,-mllvm,--wasm-enable-sjlj:-Wl,-mllvm,--wasm-use-legacy-eh=false:-Wl,-mllvm,--exception-model=wasm:-iwithsysroot:/usr/local/include/c++/v1"
 # Make clang emit the non-legacy exception handling directly
-WASIXCC_COMPILER_FLAGS+=":-Wl,-mllvm,--wasm-enable-eh:-Wl,-mllvm,--wasm-enable-sjlj:-Wl,-mllvm,--wasm-use-legacy-eh=false:-Wl,-mllvm,--exception-model=wasm"
-export WASIXCC_COMPILER_FLAGS
+export WASIXCC_LINKER_FLAGS="-mllvm:--wasm-enable-eh:-mllvm:--wasm-enable-sjlj:-mllvm:--wasm-use-legacy-eh=false:-mllvm:--exception-model=wasm"
 
 export CFLAGS="\
   -DOPENSSL_THREADS \
