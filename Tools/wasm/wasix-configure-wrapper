@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # function
@@ -29,53 +29,56 @@ if test -z "$1"; then
     exit 1
 fi
 
-export LIBLZMA_CFLAGS=$WASIX_LIBLZMA_CFLAGS
-export LIBLZMA_LIBS=$WASIX_LIBLZMA_LIBS
+function export_if_set_for_wasix() {
+    wasix_varname="WASIX_$1"
+    if [[ -v wasix_varname ]]; then
+        export "$1"="${!wasix_varname}"
+    fi
+}
 
-export ZLIB_CFLAGS=$WASIX_ZLIB_CFLAGS
-export ZLIB_LIBS=$WASIX_ZLIB_LIBS
+export_if_set_for_wasix LIBLZMA_CFLAGS
+export_if_set_for_wasix LIBLZMA_LIBS
+export_if_set_for_wasix ZLIB_CFLAGS
+export_if_set_for_wasix ZLIB_LIBS
+export_if_set_for_wasix LIBUUID_CFLAGS
+export_if_set_for_wasix LIBUUID_LIBS
+export_if_set_for_wasix LIBREADLINE_CFLAGS
+export_if_set_for_wasix LIBREADLINE_LIBS
+export_if_set_for_wasix CURSES_CFLAGS
+export_if_set_for_wasix CURSES_LIBS
+export_if_set_for_wasix PANEL_CFLAGS
+export_if_set_for_wasix PANEL_LIBS
+export_if_set_for_wasix LIBB2_CFLAGS
+export_if_set_for_wasix LIBB2_LIBS
+export_if_set_for_wasix LIBFFI_CFLAGS
+export_if_set_for_wasix LIBFFI_LIBS
+export_if_set_for_wasix LIBSQLITE3_CFLAGS
+export_if_set_for_wasix LIBSQLITE3_LIBS
 
-export LIBUUID_CFLAGS=$WASIX_LIBUUID_CFLAGS
-export LIBUUID_LIBS=$WASIX_LIBUUID_LIBS
+export_if_set_for_wasix PKG_CONFIG_SYSROOT_DIR
+export_if_set_for_wasix PKG_CONFIG_LIBDIR
 
-export LIBREADLINE_CFLAGS=$WASIX_LIBREADLINE_CFLAGS
-export LIBREADLINE_LIBS=$WASIX_LIBREADLINE_LIBS
-
-export CURSES_CFLAGS=$WASIX_CURSES_CFLAGS
-export CURSES_LIBS=$WASIX_CURSES_LIBS
-
-export PANEL_CFLAGS=$WASIX_PANEL_CFLAGS
-export PANEL_LIBS=$WASIX_PANEL_LIBS
-
-export LIBB2_CFLAGS=$WASIX_LIBB2_CFLAGS
-export LIBB2_LIBS=$WASIX_LIBB2_LIBS
-
-export BZIP2_CFLAGS=$WASIX_BZIP2_CFLAGS
-export BZIP2_LIBS=$WASIX_BZIP2_LIBS
-
-export LIBFFI_CFLAGS=$WASIX_LIBFFI_CFLAGS
-export LIBFFI_LIBS=$WASIX_LIBFFI_LIBS
-
-export LIBSQLITE3_CFLAGS=$WASIX_LIBSQLITE3_CFLAGS
-export LIBSQLITE3_LIBS=$WASIX_LIBSQLITE3_LIBS
-
-export "WASIXCC_FLAGS=-sPIC=yes -sWASM_EXCEPTIONS=yes -sINCLUDE_CPP_SYMBOLS=yes -sWASM_OPT_FLAGS=-O4:--strip-debug"
-
+export CC="wasixcc"
+export CXX="wasix++"
+export LD="wasixld"
 export RANLIB="wasixranlib"
 export AR="wasixar"
 export NM="wasixnm"
-export CC="wasixcc $WASIXCC_FLAGS"
-export CXX="wasix++ $WASIXCC_FLAGS"
-export LD="wasixld"
 
 export CFLAGS="\
   -DOPENSSL_THREADS \
   -flto"
 
-WASIXCC_RUN_WASM_OPT=no \
-  "$@" \
-  --with-openssl=$WASIX_OPENSSL_DIR \
-  --with-pkg-config=no \
-  --with-readline=yes \
-  --with-ensurepip=install \
-  --prefix=$WASIX_INSTALL/cpython
+WASIX_PREFIX_FLAGS=
+if [[ -v WASIX_INSTALL ]] ; then
+    WASIX_PREFIX_FLAGS="--prefix=$WASIX_INSTALL/cpython"
+elif [[ -v WASIX_PREFIX ]] ; then
+    WASIX_PREFIX_FLAGS="--prefix=$WASIX_PREFIX"
+fi
+
+WASIX_OPENSSL_DIR_FLAGS=
+if [[ -v WASIX_OPENSSL_DIR ]] ; then
+    WASIX_OPENSSL_DIR_FLAGS="--with-openssl=$WASIX_OPENSSL_DIR"
+fi
+
+"$@" --with-readline=yes --with-ensurepip=install $WASIX_OPENSSL_DIR_FLAGS $WASIX_PREFIX_FLAGS

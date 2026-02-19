@@ -120,10 +120,9 @@ https://wasmtime.dev/ to install wasmtime.
 """
 
 INSTALL_WASIXCC = """
-WASIX builds require wasixcc on PATH. Please install wasixcc from
-https://github.com/wasix-org/wasixcc and run
-`wasixcc --install-executables` to install the required binaries,
-and make sure the directory where the binaries are installed is in your PATH.
+WASIX builds requires wasixcc in PATH. Please install wasixcc by running
+curl -fsSL https://wasix.cc | sh
+or follow instructions at https://github.com/wasix-org/wasixcc.
 """
 
 INSTALL_WASMER = """
@@ -563,7 +562,7 @@ class BuildProfile:
     @property
     def make_cmd(self) -> List[str]:
         """Generate make command"""
-        cmd = ["make", "-j8"]
+        cmd = ["make", "-j1"]
         platform = self.host.platform
         if platform.make_wrapper:
             cmd.insert(0, os.fspath(platform.make_wrapper))
